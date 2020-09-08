@@ -35485,14 +35485,10 @@ var SetCurrency = function () {
 
     var onSelection = function onSelection($currency_list, $error, should_show_confirmation) {
         $('.currency_wrapper').off('click dblclick').on('click dblclick', function () {
-            $error.setVisibility(0);
+            removeError($error, true);
             var $clicked_currency = $(this);
             $currency_list.find('> div').removeClass('selected');
             $clicked_currency.addClass('selected');
-
-            if ($submit) {
-                $submit.removeClass('button-disabled');
-            }
 
             if (should_show_confirmation) {
                 var currency = $clicked_currency.attr('id');
@@ -35526,7 +35522,7 @@ var SetCurrency = function () {
     };
 
     var _onConfirm = function _onConfirm($currency_list, $error, should_create_account) {
-        $error.setVisibility(0);
+        removeError($error);
         var $selected_currency = $currency_list.find('.selected');
         if ($selected_currency.length) {
             var selected_currency = $selected_currency.attr('id');
@@ -35614,10 +35610,24 @@ var SetCurrency = function () {
                 }
             });
         } else {
-            if ($submit) {
-                $submit.removeClass('button-disabled');
-            }
+            removeError(null, true);
             $error.text(localize('Please choose a currency')).setVisibility(1);
+        }
+    };
+
+    /**
+     * Remove error text if $error is defined
+     * Enable confirm button if isBtnEnable is true
+     *
+     * @param {object} $error // error text jquery element
+     * @param {boolean} isBtnEnable // Enable button
+     */
+    var removeError = function removeError($error, isBtnEnable) {
+        if ($error) {
+            $error.setVisibility(0);
+        }
+        if ($submit && isBtnEnable) {
+            $submit.removeClass('button-disabled');
         }
     };
 
