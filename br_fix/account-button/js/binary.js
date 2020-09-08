@@ -35617,16 +35617,16 @@ var SetCurrency = function () {
 
     /**
      * Remove error text if $error is defined
-     * Enable confirm button if isBtnEnable is true
+     * Enable confirm button if is_btn_enabled is true
      *
      * @param {object} $error // error text jquery element
-     * @param {boolean} isBtnEnable // Enable button
+     * @param {boolean} is_btn_enabled // Enable button
      */
-    var removeError = function removeError($error, isBtnEnable) {
+    var removeError = function removeError($error, is_btn_enabled) {
         if ($error) {
             $error.setVisibility(0);
         }
-        if ($submit && isBtnEnable) {
+        if ($submit && is_btn_enabled) {
             $submit.removeClass('button-disabled');
         }
     };
