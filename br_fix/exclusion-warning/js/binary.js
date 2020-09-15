@@ -30883,7 +30883,6 @@ var scrollToHashSection = __webpack_require__(/*! ../../../../../_common/scroll 
 var SelfExclusion = function () {
     var $form = void 0,
         $warning_ukgc = void 0,
-        $ukgc_gamstop = void 0,
         $timeout_date = void 0,
         $exclude_until = void 0,
         fields = void 0,
@@ -30907,7 +30906,6 @@ var SelfExclusion = function () {
     var onLoad = function onLoad() {
         $form = $(form_id);
         $warning_ukgc = $('#self_exclusion_warning');
-        $ukgc_gamstop = $('#ukgc_gamstop');
         $timeout_date = $(timeout_date_id);
         $exclude_until = $(exclude_until_id);
 
@@ -30974,7 +30972,7 @@ var SelfExclusion = function () {
                     if (key === 'exclude_until') {
                         setDateTimePicker(exclude_until_id, value);
                         $form.find('label[for="exclude_until"]').text(localize('Excluded from the website until'));
-                        showWarning(true);
+                        showWarning();
                         return;
                     }
                     if (key === 'max_30day_turnover') {
@@ -31159,10 +31157,11 @@ var SelfExclusion = function () {
         });
     };
 
-    var showWarning = function showWarning(is_enable) {
+    var showWarning = function showWarning() {
+        var is_enable = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
+
         if (is_mx || is_mlt) {
             $warning_ukgc.setVisibility(is_enable);
-            $ukgc_gamstop.setVisibility(is_mlt);
         }
     };
 
@@ -31193,7 +31192,6 @@ var SelfExclusion = function () {
     };
 
     var setExclusionResponse = function setExclusionResponse(response) {
-        var exclude_until_val = $exclude_until.attr('data-value');
         if (response.error) {
             var error_msg = response.error.message;
             var error_fld = response.error.field;
@@ -31208,7 +31206,8 @@ var SelfExclusion = function () {
             return;
         }
         showFormMessage(localize('Your changes have been updated.'), true);
-        showWarning(Boolean(exclude_until_val));
+        var exclude_until_val = $exclude_until.attr('data-value');
+        showWarning(!!exclude_until_val);
         Client.set('session_start', moment().unix()); // used to handle session duration limit
         var _response$echo_req = response.echo_req,
             exclude_until = _response$echo_req.exclude_until,
