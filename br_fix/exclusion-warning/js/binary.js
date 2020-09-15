@@ -31193,6 +31193,7 @@ var SelfExclusion = function () {
     };
 
     var setExclusionResponse = function setExclusionResponse(response) {
+        var exclude_until_val = $exclude_until.attr('data-value');
         if (response.error) {
             var error_msg = response.error.message;
             var error_fld = response.error.field;
@@ -31207,7 +31208,7 @@ var SelfExclusion = function () {
             return;
         }
         showFormMessage(localize('Your changes have been updated.'), true);
-        showWarning(Boolean($('#exclude_until').attr('data-value')));
+        showWarning(Boolean(exclude_until_val));
         Client.set('session_start', moment().unix()); // used to handle session duration limit
         var _response$echo_req = response.echo_req,
             exclude_until = _response$echo_req.exclude_until,
