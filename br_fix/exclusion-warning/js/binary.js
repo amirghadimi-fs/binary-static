@@ -31158,10 +31158,10 @@ var SelfExclusion = function () {
     };
 
     var showWarning = function showWarning() {
-        var is_enable = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
+        var is_enabled = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
 
         if (is_mx || is_mlt) {
-            $warning_ukgc.setVisibility(is_enable);
+            $warning_ukgc.setVisibility(is_enabled);
         }
     };
 
