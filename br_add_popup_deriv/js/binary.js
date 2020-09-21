@@ -11797,56 +11797,75 @@ module.exports = Redirect;
 
 
 var BinarySocket = __webpack_require__(/*! ./socket */ "./src/javascript/app/base/socket.js");
-var isEuCountry = __webpack_require__(/*! ../common/country_base */ "./src/javascript/app/common/country_base.js").isEuCountry;
 var Client = __webpack_require__(/*! ../base/client */ "./src/javascript/app/base/client.js");
 var Login = __webpack_require__(/*! ../../_common/base/login */ "./src/javascript/_common/base/login.js");
+var getElementById = __webpack_require__(/*! ../../_common/common_functions */ "./src/javascript/_common/common_functions.js").getElementById;
+var isEuCountry = __webpack_require__(/*! ../common/country_base */ "./src/javascript/app/common/country_base.js").isEuCountry;
 
 var RedirectPopup = function () {
+    var learn_more_url = 'http://deriv.com/interim/faq/';
+    var el_popup_container = void 0,
+        el_checkbox = void 0,
+        el_link_login = void 0,
+        el_link_more = void 0,
+        el_close = void 0;
+
     var onLoad = function onLoad() {
         BinarySocket.wait('authorize', 'website_status', 'landing_company').then(function () {
-            var has_dont_show = localStorage.getItem('redirect_popup');
-            var $popup = $('#redirect_popup_container');
-            var $checkbox = $('#redirect_popup_checkbox');
-            var $login = $('#redirect_popup_login');
-            var $more = $('#redirect_popup_more');
-            var $close = $('#redirect_popup_close');
+            var should_show_popup = !localStorage.getItem('is_redirect_popup_dismissed');
+            el_popup_container = getElementById('redirect_popup_container');
+            el_checkbox = getElementById('redirect_popup_checkbox');
+            el_link_login = getElementById('redirect_popup_login');
+            el_link_more = getElementById('redirect_popup_more');
+            el_close = getElementById('redirect_popup_close');
 
-            if (!Client.isLoggedIn() && isEuCountry() && !has_dont_show) {
-                setTimeout(function () {
-                    $popup.removeClass('invisible');
-                }, 2000);
+            if (!Client.isLoggedIn() && isEuCountry() && should_show_popup) {
 
-                $checkbox.on('change', function () {
-                    var is_checked = $(this).is(':checked');
-
-                    if (is_checked) {
-                        localStorage.setItem('redirect_popup', 1);
-                    } else {
-                        localStorage.removeItem('redirect_popup');
-                    }
-                });
-
-                $close.on('click', function () {
-                    $popup.addClass('invisible');
-                });
-
-                $login.one('click', function () {
-                    var url = Login.loginUrl('deriv.com');
-                    $popup.addClass('invisible');
-                    location.href = url;
-                });
-
-                $more.one('click', function () {
-                    var url = 'http://deriv.com/interim/faq/';
-                    $popup.addClass('invisible');
-                    location.href = url;
-                });
+                el_popup_container.classList.remove('invisible');
+                el_checkbox.addEventListener('change', toggleDismissed);
+                el_close.addEventListener('click', hidePopup);
+                el_link_login.addEventListener('click', redirectToLogin);
+                el_link_more.addEventListener('click', redirectToDetails);
             }
         });
     };
 
+    var toggleDismissed = function toggleDismissed() {
+        var is_checked = el_checkbox.checked;
+
+        if (is_checked) {
+            localStorage.setItem('is_redirect_popup_dismissed', 1);
+        } else {
+            localStorage.removeItem('is_redirect_popup_dismissed');
+        }
+    };
+
+    var hidePopup = function hidePopup() {
+        el_popup_container.classList.add('invisible');
+        onUnload();
+    };
+
+    var redirectToLogin = function redirectToLogin() {
+        var url = Login.loginUrl('deriv.com');
+        hidePopup();
+        window.open(url);
+    };
+
+    var redirectToDetails = function redirectToDetails() {
+        hidePopup();
+        window.open(learn_more_url);
+    };
+
+    var onUnload = function onUnload() {
+        el_checkbox.removeEventListener('change', toggleDismissed);
+        el_close.removeEventListener('click', hidePopup);
+        el_link_login.removeEventListener('click', redirectToLogin);
+        el_link_more.removeEventListener('click', redirectToDetails);
+    };
+
     return {
-        onLoad: onLoad
+        onLoad: onLoad,
+        onUnload: onUnload
     };
 }();
 
@@ -30951,11 +30970,16 @@ var scrollToHashSection = __webpack_require__(/*! ../../../../../_common/scroll 
 
 var SelfExclusion = function () {
     var $form = void 0,
+        $warning_ukgc = void 0,
+        $timeout_date = void 0,
+        $exclude_until = void 0,
         fields = void 0,
         self_exclusion_data = void 0,
         set_30day_turnover = void 0,
         currency = void 0,
         is_gamstop_client = void 0,
+        is_mlt = void 0,
+        is_mx = void 0,
         has_exclude_until = void 0;
 
     var form_id = '#frm_self_exclusion';
@@ -30969,6 +30993,9 @@ var SelfExclusion = function () {
 
     var onLoad = function onLoad() {
         $form = $(form_id);
+        $warning_ukgc = $('#self_exclusion_warning');
+        $timeout_date = $(timeout_date_id);
+        $exclude_until = $(exclude_until_id);
 
         fields = {};
         $form.find('input').each(function () {
@@ -30980,7 +31007,9 @@ var SelfExclusion = function () {
         $('.append_currency').after(Currency.formatCurrency(currency));
 
         // gamstop is only applicable for UK residence & for MX, MLT clients
-        is_gamstop_client = /gb/.test(Client.get('residence')) && /iom|malta/.test(Client.get('landing_company_shortcode'));
+        is_mlt = Client.get('landing_company_shortcode') === 'malta';
+        is_mx = Client.get('landing_company_shortcode') === 'iom';
+        is_gamstop_client = Client.get('residence') === 'gb' && (is_mx || is_mlt);
 
         initDatePicker();
         getData(true);
@@ -31031,8 +31060,7 @@ var SelfExclusion = function () {
                     if (key === 'exclude_until') {
                         setDateTimePicker(exclude_until_id, value);
                         $form.find('label[for="exclude_until"]').text(localize('Excluded from the website until'));
-                        $('#ukgc_gamstop').setVisibility(is_gamstop_client);
-                        $('#ukgc_requirement_notice').setVisibility(1);
+                        showWarning();
                         return;
                     }
                     if (key === 'max_30day_turnover') {
@@ -31198,6 +31226,8 @@ var SelfExclusion = function () {
         $(timeout_date_id + ', ' + exclude_until_id).change(function () {
             dateValueChanged(this, 'date');
             var date = this.getAttribute('data-value');
+            var timeout_val = $timeout_date.attr('data-value');
+            var exclude_until_val = $exclude_until.attr('data-value');
 
             if (timeout_date_id.indexOf(this.id) > 0) {
                 var disabled_time_options = {
@@ -31211,8 +31241,16 @@ var SelfExclusion = function () {
                 }));
             }
 
-            $('#gamstop_info_bottom').setVisibility(is_gamstop_client && date);
+            showWarning(timeout_val || exclude_until_val);
         });
+    };
+
+    var showWarning = function showWarning() {
+        var is_enabled = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
+
+        if (is_mx || is_mlt) {
+            $warning_ukgc.setVisibility(is_enabled);
+        }
     };
 
     var additionalCheck = function additionalCheck(data) {
@@ -31256,11 +31294,8 @@ var SelfExclusion = function () {
             return;
         }
         showFormMessage(localize('Your changes have been updated.'), true);
-        if ($('#exclude_until').attr('data-value')) {
-            $('#gamstop_info_bottom').setVisibility(0);
-            $('#ukgc_gamstop').setVisibility(is_gamstop_client);
-            $('#ukgc_requirement_notice').setVisibility(1);
-        }
+        var exclude_until_val = $exclude_until.attr('data-value');
+        showWarning(!!exclude_until_val);
         Client.set('session_start', moment().unix()); // used to handle session duration limit
         var _response$echo_req = response.echo_req,
             exclude_until = _response$echo_req.exclude_until,
@@ -37099,10 +37134,10 @@ var getAppId = function getAppId(domain) {
     var is_new_app = /\/app\//.test(window.location.pathname);
     var domain_app_id = domain_app_ids[domain];
 
-    if (domain_app_id) {
-        app_id = domain_app_id;
-    } else if (config_app_id) {
+    if (config_app_id) {
         app_id = config_app_id;
+    } else if (domain_app_id) {
+        app_id = domain_app_id;
     } else if (/desktop-app/i.test(window.location.href) || window.localStorage.getItem('config.is_desktop_app')) {
         window.localStorage.removeItem('config.default_app_id');
         window.localStorage.setItem('config.is_desktop_app', 1);
@@ -37494,11 +37529,11 @@ var State = __webpack_require__(/*! ../../_common/storage */ "./src/javascript/_
 var TabSelector = __webpack_require__(/*! ../../_common/tab_selector */ "./src/javascript/_common/tab_selector.js");
 var urlFor = __webpack_require__(/*! ../../_common/url */ "./src/javascript/_common/url.js").urlFor;
 var BinaryPjax = __webpack_require__(/*! ../../app/base/binary_pjax */ "./src/javascript/app/base/binary_pjax.js");
+var RedirectPopup = __webpack_require__(/*! ../../app/base/redirect_popup */ "./src/javascript/app/base/redirect_popup.js");
 var BinarySocket = __webpack_require__(/*! ../../app/base/socket */ "./src/javascript/app/base/socket.js");
 var FormManager = __webpack_require__(/*! ../../app/common/form_manager */ "./src/javascript/app/common/form_manager.js");
 var getFormRequest = __webpack_require__(/*! ../../app/common/verify_email */ "./src/javascript/app/common/verify_email.js");
 var isBinaryApp = __webpack_require__(/*! ../../config */ "./src/javascript/config.js").isBinaryApp;
-var RedirectPopup = __webpack_require__(/*! ../../app/base/redirect_popup */ "./src/javascript/app/base/redirect_popup.js");
 
 var Home = function () {
     var clients_country = void 0;
