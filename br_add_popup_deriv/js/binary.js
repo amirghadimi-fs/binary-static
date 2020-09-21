@@ -37595,6 +37595,7 @@ var Home = function () {
 
     var onUnload = function onUnload() {
         TabSelector.onUnload();
+        RedirectPopup.onUnload();
     };
 
     return {
