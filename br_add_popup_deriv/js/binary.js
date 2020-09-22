@@ -1393,22 +1393,22 @@ var Login = function () {
     var redirectToLogin = function redirectToLogin() {
         if (!Client.isLoggedIn() && !isLoginPages() && isStorageSupported(sessionStorage)) {
             sessionStorage.setItem('redirect_url', window.location.href);
-            window.location.href = loginUrl();
+            window.location.href = getLoginUrl();
         }
     };
 
-    var loginUrl = function loginUrl() {
+    var getLoginUrl = function getLoginUrl(domain) {
         var server_url = localStorage.getItem('config.server_url');
         var language = getLanguage();
         var signup_device = LocalStore.get('signup_device') || (isMobile() ? 'mobile' : 'desktop');
         var date_first_contact = LocalStore.get('date_first_contact');
         var marketing_queries = '&signup_device=' + signup_device + (date_first_contact ? '&date_first_contact=' + date_first_contact : '');
 
-        return server_url && /qa/.test(server_url) ? 'https://' + server_url + '/oauth2/authorize?app_id=' + getAppId() + '&l=' + language + marketing_queries : urlForCurrentDomain('https://oauth.binary.com/oauth2/authorize?app_id=' + getAppId() + '&l=' + language + marketing_queries);
+        return server_url && /qa/.test(server_url) ? 'https://' + server_url + '/oauth2/authorize?app_id=' + getAppId() + '&l=' + language + marketing_queries : urlForCurrentDomain('https://oauth.' + (domain || 'binary.com') + '/oauth2/authorize?app_id=' + getAppId(domain) + '&l=' + language + marketing_queries);
     };
 
     var socialLoginUrl = function socialLoginUrl(brand, affiliate_token, utm_source, utm_medium, utm_campaign) {
-        return loginUrl() + '&social_signup=' + brand + affiliate_token + utm_source + utm_medium + utm_campaign;
+        return getLoginUrl() + '&social_signup=' + brand + affiliate_token + utm_source + utm_medium + utm_campaign;
     };
 
     var initOneAll = function initOneAll() {
@@ -1431,6 +1431,7 @@ var Login = function () {
     };
 
     return {
+        getLoginUrl: getLoginUrl,
         redirectToLogin: redirectToLogin,
         initOneAll: initOneAll
     };
@@ -11785,6 +11786,93 @@ module.exports = Redirect;
 
 /***/ }),
 
+/***/ "./src/javascript/app/base/redirect_popup.js":
+/*!***************************************************!*\
+  !*** ./src/javascript/app/base/redirect_popup.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var BinarySocket = __webpack_require__(/*! ./socket */ "./src/javascript/app/base/socket.js");
+var Client = __webpack_require__(/*! ../base/client */ "./src/javascript/app/base/client.js");
+var Login = __webpack_require__(/*! ../../_common/base/login */ "./src/javascript/_common/base/login.js");
+var getElementById = __webpack_require__(/*! ../../_common/common_functions */ "./src/javascript/_common/common_functions.js").getElementById;
+var isEuCountry = __webpack_require__(/*! ../common/country_base */ "./src/javascript/app/common/country_base.js").isEuCountry;
+
+var RedirectPopup = function () {
+    var learn_more_url = 'https://deriv.com/interim/faq/';
+    var el_popup_container = void 0,
+        el_checkbox = void 0,
+        el_link_login = void 0,
+        el_link_more = void 0,
+        el_close = void 0;
+
+    var onLoad = function onLoad() {
+        BinarySocket.wait('authorize', 'website_status', 'landing_company').then(function () {
+            var should_show_popup = !localStorage.getItem('is_redirect_popup_dismissed');
+            el_popup_container = getElementById('redirect_popup_container');
+            el_checkbox = getElementById('redirect_popup_checkbox');
+            el_link_login = getElementById('redirect_popup_login');
+            el_link_more = getElementById('redirect_popup_more');
+            el_close = getElementById('redirect_popup_close');
+
+            if (!Client.isLoggedIn() && isEuCountry() && should_show_popup) {
+
+                el_popup_container.classList.remove('invisible');
+                el_checkbox.addEventListener('change', toggleDismissed);
+                el_close.addEventListener('click', hidePopup);
+                el_link_login.addEventListener('click', redirectToLogin);
+                el_link_more.addEventListener('click', redirectToDetails);
+            }
+        });
+    };
+
+    var toggleDismissed = function toggleDismissed() {
+        var is_checked = el_checkbox.checked;
+
+        if (is_checked) {
+            localStorage.setItem('is_redirect_popup_dismissed', 1);
+        } else {
+            localStorage.removeItem('is_redirect_popup_dismissed');
+        }
+    };
+
+    var hidePopup = function hidePopup() {
+        el_popup_container.classList.add('invisible');
+        onUnload();
+    };
+
+    var redirectToLogin = function redirectToLogin() {
+        var url = Login.getLoginUrl('deriv.com');
+        hidePopup();
+        window.open(url);
+    };
+
+    var redirectToDetails = function redirectToDetails() {
+        hidePopup();
+        window.open(learn_more_url);
+    };
+
+    var onUnload = function onUnload() {
+        el_checkbox.removeEventListener('change', toggleDismissed);
+        el_close.removeEventListener('click', hidePopup);
+        el_link_login.removeEventListener('click', redirectToLogin);
+        el_link_more.removeEventListener('click', redirectToDetails);
+    };
+
+    return {
+        onLoad: onLoad,
+        onUnload: onUnload
+    };
+}();
+
+module.exports = RedirectPopup;
+
+/***/ }),
+
 /***/ "./src/javascript/app/base/socket.js":
 /*!*******************************************!*\
   !*** ./src/javascript/app/base/socket.js ***!
@@ -15967,6 +16055,7 @@ var DepositWithdraw = function () {
     var response_withdrawal = {};
 
     var cashier_type = void 0,
+        has_no_balance = void 0,
         token = void 0,
         $iframe = void 0,
         $loading = void 0;
@@ -16151,7 +16240,7 @@ var DepositWithdraw = function () {
             }
         } else {
             var client_currency = Client.get('currency');
-            if (cashier_type === 'deposit' && Client.canChangeCurrency(State.getResponse('statement'), State.getResponse('mt5_login_list'))) {
+            if (cashier_type === 'deposit' && has_no_balance && Client.canChangeCurrency(State.getResponse('statement'), State.getResponse('mt5_login_list'))) {
                 Dialog.confirm({
                     id: 'deposit_currency_change_popup_container',
                     ok_text: localize('Yes I\'m sure'),
@@ -16208,41 +16297,44 @@ var DepositWithdraw = function () {
                             return _context.abrupt('return');
 
                         case 5:
-                            if (!(cashier_type === 'withdraw' && +Client.get('balance') === 0)) {
-                                _context.next = 8;
+
+                            has_no_balance = +Client.get('balance') === 0;
+
+                            if (!(cashier_type === 'withdraw' && has_no_balance)) {
+                                _context.next = 9;
                                 break;
                             }
 
                             showError('no_balance_error');
                             return _context.abrupt('return');
 
-                        case 8:
-                            _context.next = 10;
+                        case 9:
+                            _context.next = 11;
                             return BinarySocket.send({ get_account_status: 1 });
 
-                        case 10:
+                        case 11:
 
                             // cannot use State.getResponse because we want to check error which is outside of response[msg_type]
                             response_get_account_status = State.get(['response', 'get_account_status']);
 
                             if (response_get_account_status.error) {
-                                _context.next = 19;
+                                _context.next = 20;
                                 break;
                             }
 
                             if (!/cashier_locked/.test(response_get_account_status.get_account_status.status)) {
-                                _context.next = 15;
+                                _context.next = 16;
                                 break;
                             }
 
                             showError('custom_error', localize('Your cashier is locked.')); // Locked from BO
                             return _context.abrupt('return');
 
-                        case 15:
+                        case 16:
                             account_currency_config = getPropertyValue(response_get_account_status.get_account_status, ['currency_config', Client.get('currency')]) || {};
 
                             if (!(cashier_type === 'deposit' && account_currency_config.is_deposit_suspended || cashier_type === 'withdraw' && account_currency_config.is_withdrawal_suspended)) {
-                                _context.next = 19;
+                                _context.next = 20;
                                 break;
                             }
 
@@ -16250,20 +16342,20 @@ var DepositWithdraw = function () {
                             showError('custom_error', localize('Please note that the selected currency is allowed for limited accounts only.'));
                             return _context.abrupt('return');
 
-                        case 19:
-                            _context.next = 21;
+                        case 20:
+                            _context.next = 22;
                             return BinarySocket.wait('website_status');
 
-                        case 21:
+                        case 22:
                             currency_config = getPropertyValue(getCurrencies(), [Client.get('currency')]) || {};
 
                             if (!(cashier_type === 'deposit')) {
-                                _context.next = 28;
+                                _context.next = 29;
                                 break;
                             }
 
                             if (!currency_config.is_deposit_suspended) {
-                                _context.next = 26;
+                                _context.next = 27;
                                 break;
                             }
 
@@ -16271,13 +16363,13 @@ var DepositWithdraw = function () {
                             showError('custom_error', localize('Sorry, deposits for this currency are currently disabled.'));
                             return _context.abrupt('return');
 
-                        case 26:
-                            _context.next = 31;
+                        case 27:
+                            _context.next = 32;
                             break;
 
-                        case 28:
+                        case 29:
                             if (!currency_config.is_withdrawal_suspended) {
-                                _context.next = 31;
+                                _context.next = 32;
                                 break;
                             }
 
@@ -16286,12 +16378,16 @@ var DepositWithdraw = function () {
                             showError('custom_error', localize('Sorry, withdrawals for this currency are currently disabled.'));
                             return _context.abrupt('return');
 
-                        case 31:
+                        case 32:
                             promises = [];
 
                             if (cashier_type === 'deposit') {
-                                promises.push(BinarySocket.send({ statement: 1, limit: 1 }));
-                                promises.push(BinarySocket.send({ mt5_login_list: 1 }));
+                                // to speed up page load
+                                // if client has balance then no need to check their transactions or mt5 accounts
+                                if (has_no_balance) {
+                                    promises.push(BinarySocket.send({ statement: 1, limit: 1 }));
+                                    promises.push(BinarySocket.send({ mt5_login_list: 1 }));
+                                }
                             } else {
                                 promises.push(BinarySocket.send({ get_limits: 1 }));
                             }
@@ -16309,7 +16405,7 @@ var DepositWithdraw = function () {
                                 });
                             });
 
-                        case 34:
+                        case 35:
                         case 'end':
                             return _context.stop();
                     }
@@ -37039,13 +37135,17 @@ var isProduction = function isProduction() {
 
 var binary_desktop_app_id = 14473;
 
-var getAppId = function getAppId() {
+var getAppId = function getAppId(domain) {
     var app_id = null;
     var user_app_id = ''; // you can insert Application ID of your registered application here
     var config_app_id = window.localStorage.getItem('config.app_id');
     var is_new_app = /\/app\//.test(window.location.pathname);
+    var domain_app_id = domain_app_ids[domain];
+
     if (config_app_id) {
         app_id = config_app_id;
+    } else if (domain_app_id) {
+        app_id = domain_app_id;
     } else if (/desktop-app/i.test(window.location.href) || window.localStorage.getItem('config.is_desktop_app')) {
         window.localStorage.removeItem('config.default_app_id');
         window.localStorage.setItem('config.is_desktop_app', 1);
@@ -37437,6 +37537,7 @@ var State = __webpack_require__(/*! ../../_common/storage */ "./src/javascript/_
 var TabSelector = __webpack_require__(/*! ../../_common/tab_selector */ "./src/javascript/_common/tab_selector.js");
 var urlFor = __webpack_require__(/*! ../../_common/url */ "./src/javascript/_common/url.js").urlFor;
 var BinaryPjax = __webpack_require__(/*! ../../app/base/binary_pjax */ "./src/javascript/app/base/binary_pjax.js");
+var RedirectPopup = __webpack_require__(/*! ../../app/base/redirect_popup */ "./src/javascript/app/base/redirect_popup.js");
 var BinarySocket = __webpack_require__(/*! ../../app/base/socket */ "./src/javascript/app/base/socket.js");
 var FormManager = __webpack_require__(/*! ../../app/common/form_manager */ "./src/javascript/app/common/form_manager.js");
 var getFormRequest = __webpack_require__(/*! ../../app/common/verify_email */ "./src/javascript/app/common/verify_email.js");
@@ -37448,6 +37549,7 @@ var Home = function () {
     var onLoad = function onLoad() {
         Login.initOneAll();
         TabSelector.onLoad();
+        RedirectPopup.onLoad();
 
         BinarySocket.wait('website_status', 'authorize', 'landing_company').then(function () {
             clients_country = State.getResponse('website_status.clients_country');
@@ -37501,6 +37603,7 @@ var Home = function () {
 
     var onUnload = function onUnload() {
         TabSelector.onUnload();
+        RedirectPopup.onUnload();
     };
 
     return {

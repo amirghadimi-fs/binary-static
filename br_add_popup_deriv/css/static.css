@@ -872,6 +872,133 @@ div.kineticjs-content {
   #content.home-content .padding-top-20 {
     padding-top: 20px; } }
 
+#redirect_popup_container {
+  height: 100%;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99999;
+  overflow: auto; }
+  #redirect_popup_container .popup {
+    width: 100%;
+    min-height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
+    -webkit-box-pack: center;
+        -ms-flex-pack: center;
+            justify-content: center;
+    -webkit-box-sizing: border-box;
+            box-sizing: border-box; }
+    @media screen and (max-height: 480px) {
+      #redirect_popup_container .popup {
+        display: block;
+        padding: 50px 0; } }
+    #redirect_popup_container .popup__inner {
+      position: relative;
+      width: calc(100% - 20px);
+      max-width: 540px;
+      -webkit-box-sizing: border-box;
+              box-sizing: border-box;
+      background: #fff;
+      z-index: 1;
+      padding: 32px 40px;
+      border-radius: 4px; }
+      @media screen and (max-width: 500px) {
+        #redirect_popup_container .popup__inner {
+          padding: 32px 20px; } }
+      @media screen and (max-height: 480px) {
+        #redirect_popup_container .popup__inner {
+          margin: 0 auto; } }
+    #redirect_popup_container .popup__close {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      width: 14px;
+      height: 14px;
+      background-image: url("../images/common/close_icon.svg");
+      background-position: center center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      cursor: pointer;
+      z-index: 1; }
+      #redirect_popup_container .popup__close:before {
+        content: '';
+        width: 25px;
+        height: 25px;
+        position: absolute;
+        top: 50%;
+        right: 50%;
+        -webkit-transform: translate(50%, -50%);
+                transform: translate(50%, -50%); }
+    #redirect_popup_container .popup__head {
+      color: #e98024;
+      font-size: 36px; }
+      @media screen and (max-width: 500px) {
+        #redirect_popup_container .popup__head {
+          font-size: 28px; } }
+    #redirect_popup_container .popup__body p {
+      font-size: 18px;
+      margin: 16px 0; }
+      @media screen and (max-width: 500px) {
+        #redirect_popup_container .popup__body p {
+          font-size: 16px; } }
+    #redirect_popup_container .popup__checkbox {
+      position: relative;
+      margin-bottom: 24px;
+      -webkit-user-select: none;
+         -moz-user-select: none;
+          -ms-user-select: none;
+              user-select: none; }
+      #redirect_popup_container .popup__checkbox span {
+        font-size: 13px;
+        display: inline-block;
+        margin-left: 4px; }
+    #redirect_popup_container .popup__options {
+      display: -webkit-box;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-box-align: center;
+          -ms-flex-align: center;
+              align-items: center;
+      -webkit-box-pack: end;
+          -ms-flex-pack: end;
+              justify-content: flex-end;
+      -ms-flex-wrap: wrap;
+          flex-wrap: wrap; }
+      @media screen and (max-width: 400px) {
+        #redirect_popup_container .popup__options {
+          -webkit-box-pack: center;
+              -ms-flex-pack: center;
+                  justify-content: center; } }
+      #redirect_popup_container .popup__options .button {
+        margin: 0 0 0 16px; }
+        @media screen and (max-width: 500px) {
+          #redirect_popup_container .popup__options .button {
+            font-size: 14px;
+            margin: 0 0 0 10px; } }
+        @media screen and (max-width: 400px) {
+          #redirect_popup_container .popup__options .button {
+            width: 100%;
+            text-align: center;
+            margin: 0;
+            display: -webkit-box;
+            display: -ms-flexbox;
+            display: flex; } }
+        @media screen and (max-width: 400px) {
+          #redirect_popup_container .popup__options .button span {
+            -webkit-box-flex: 1;
+                -ms-flex: 1;
+                    flex: 1; } }
+        @media screen and (max-width: 400px) {
+          #redirect_popup_container .popup__options .button:last-of-type {
+            margin-top: 10px; } }
+
 .open-positions .one-line {
   margin-bottom: 42px; }
 
