@@ -17103,19 +17103,22 @@ var AssetIndex = function () {
                     };
                 }
 
-                var asset_cells = asset_item[idx.cells].filter(function (cell) {
-                    return cell[idx.cell_props.cell_name] !== 'multiplier';
-                }); // Multiplier should be hidden from binary static
+                var asset_cells = asset_item[idx.cells];
                 var values = {};
                 for (var j = 0; j < asset_cells.length; j++) {
-                    var col = asset_cells[j][idx.cell_props.cell_display_name];
+                    var cell = asset_cells[j];
+                    var cell_name = cell[idx.cell_props.cell_name];
 
-                    values[col] = [asset_cells[j][idx.cell_props.cell_from], asset_cells[j][idx.cell_props.cell_to]].join(' - ');
+                    // Multiplier should be hidden from binary static
+                    if (cell_name !== 'multiplier') {
+                        var col = cell[idx.cell_props.cell_display_name];
+                        values[col] = [cell[idx.cell_props.cell_from], cell[idx.cell_props.cell_to]].join(' - ');
 
-                    var market_cols = market_columns[market];
-                    if (market_cols.columns.indexOf(col) === -1) {
-                        market_cols.header.push(asset_cells[j][idx.cell_props.cell_display_name]);
-                        market_cols.columns.push(col);
+                        var market_cols = market_columns[market];
+                        if (market_cols.columns.indexOf(col) === -1) {
+                            market_cols.header.push(cell[idx.cell_props.cell_display_name]);
+                            market_cols.columns.push(col);
+                        }
                     }
                 }
                 asset_item.push(values);
@@ -30900,6 +30903,7 @@ var SelfExclusion = function () {
         set_30day_turnover = void 0,
         currency = void 0,
         is_gamstop_client = void 0,
+        is_svg_client = void 0,
         is_mlt = void 0,
         is_mx = void 0,
         has_exclude_until = void 0;
@@ -30928,7 +30932,9 @@ var SelfExclusion = function () {
 
         $('.append_currency').after(Currency.formatCurrency(currency));
 
-        // gamstop is only applicable for UK residence & for MX, MLT clients
+        // svg is only applicable for CR clients
+        is_svg_client = Client.get('landing_company_shortcode') === 'svg';
+
         is_mlt = Client.get('landing_company_shortcode') === 'malta';
         is_mx = Client.get('landing_company_shortcode') === 'iom';
         is_gamstop_client = Client.get('residence') === 'gb' && (is_mx || is_mlt);
@@ -31028,7 +31034,9 @@ var SelfExclusion = function () {
             var options = { min: 0 };
             if (id in self_exclusion_data) {
                 checks.push('req');
-                options.max = self_exclusion_data[id];
+                if (!is_svg_client) {
+                    options.max = self_exclusion_data[id];
+                }
             } else {
                 options.allow_empty = true;
             }
@@ -31183,20 +31191,34 @@ var SelfExclusion = function () {
 
                 );
             });
+
             if (!is_changed) {
                 showFormMessage(localize('You did not change anything.'), false);
                 resolve(false);
             }
 
-            if ('timeout_until' in data || 'exclude_until' in data) {
+            if (is_svg_client && is_changed) {
                 Dialog.confirm({
-                    id: 'timeout_until_dialog',
-                    localized_message: localize('When you click "OK" you will be excluded from trading on the site until the selected date.')
+                    id: 'self_exclusion_dialog',
+                    localized_title: localize('Confirm changes'),
+                    localized_message: localize('We’ll update your limits. Click [_1]Agree and accept[_2] to acknowledge that you are fully responsible for your actions, and we are not liable for any addiction or loss.', ['<strong>', '</strong>']),
+                    ok_text: localize('Agree and accept'),
+                    cancel_text: localize('Go back')
                 }).then(function (response) {
                     return resolve(response);
                 });
             } else {
-                resolve(true);
+                var has_timeout = 'timeout_until' in data || 'exclude_until' in data;
+                if (has_timeout) {
+                    Dialog.confirm({
+                        id: 'timeout_until_dialog',
+                        localized_message: localize('When you click "OK" you will be excluded from trading on the site until the selected date.')
+                    }).then(function (response) {
+                        return resolve(response);
+                    });
+                } else {
+                    resolve(true);
+                }
             }
         });
     };
