@@ -2251,16 +2251,16 @@ body #not_authenticated_financial ul.checked > li {
 .tnc {
   max-width: 776px;
   margin: 64px auto 96px; }
-  .tnc_img {
+  .tnc-img {
     display: block;
     width: 90%;
     max-width: 270px;
     height: auto;
     margin: 0 auto 25px; }
-  .tnc_text {
+  .tnc-text {
     font-size: 1.15rem;
     margin-bottom: 24px; }
-  .tnc_btn span {
+  .tnc-btn span {
     padding: 15px 25px; }
 
 .timeline {
