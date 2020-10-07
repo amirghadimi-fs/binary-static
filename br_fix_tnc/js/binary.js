@@ -9957,7 +9957,6 @@ var JobDetails = __webpack_require__(/*! ../../static/pages/job_details */ "./sr
 var Platforms = __webpack_require__(/*! ../../static/pages/platforms */ "./src/javascript/static/pages/platforms.js");
 var Regulation = __webpack_require__(/*! ../../static/pages/regulation */ "./src/javascript/static/pages/regulation.js");
 var StaticPages = __webpack_require__(/*! ../../static/pages/static_pages */ "./src/javascript/static/pages/static_pages.js");
-var TermsAndConditions = __webpack_require__(/*! ../../static/pages/tnc */ "./src/javascript/static/pages/tnc.js");
 var WhyUs = __webpack_require__(/*! ../../static/pages/why_us */ "./src/javascript/static/pages/why_us.js");
 var AffiliatesIBLanding = __webpack_require__(/*! ../../static/pages/affiliate_ib_landing */ "./src/javascript/static/pages/affiliate_ib_landing.js");
 
@@ -10041,7 +10040,6 @@ var pages_config = {
     'payment-agent': { module: StaticPages.PaymentAgent },
     'set-currency': { module: SetCurrency, is_authenticated: true, only_real: true, needs_currency: true },
     'telegram-bot': { module: TelegramBot, is_authenticated: true },
-    'terms-and-conditions': { module: TermsAndConditions },
     'types-of-accounts': { module: TypesOfAccounts },
     'video-facility': { module: VideoFacility, is_authenticated: true, only_real: true },
     'why-us': { module: WhyUs }
@@ -37898,166 +37896,6 @@ module.exports = {
         }
     }
 };
-
-/***/ }),
-
-/***/ "./src/javascript/static/pages/tnc.js":
-/*!********************************************!*\
-  !*** ./src/javascript/static/pages/tnc.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var tabListener = __webpack_require__(/*! @binary-com/binary-style */ "./node_modules/@binary-com/binary-style/binary.js").tabListener;
-var localize = __webpack_require__(/*! ../../_common/localize */ "./src/javascript/_common/localize.js").localize;
-var TNCApproval = __webpack_require__(/*! ../../app/pages/user/tnc_approval */ "./src/javascript/app/pages/user/tnc_approval.js");
-
-var TermsAndConditions = function () {
-    var sidebar_width = void 0;
-
-    var onLoad = function onLoad() {
-        var container = document.getElementsByClassName('sidebar-collapsible-container')[0];
-        if (container) sidebar_width = container.offsetWidth;
-
-        handleActiveTab(); // adds active class
-        TNCApproval.requiresTNCApproval($('#btn_accept'), function () {
-            $('.tnc_accept').setVisibility(1);
-        }, function () {
-            $('#tnc_accept').html(localize('Your settings have been updated successfully.'));
-        });
-        tabListener();
-
-        initSidebar();
-
-        checkWidth();
-        window.onresize = checkWidth;
-
-        $('.currentYear').text(new Date().getFullYear());
-    };
-
-    var handleActiveTab = function handleActiveTab() {
-        var params = window.location.hash.split('&');
-        var hash = params[0] || '#legal';
-        var menu = '.tab-menu-wrap';
-        var content = '.tab-content-wrapper';
-
-        var parent_active = 'active';
-        var child_active = 'a-active';
-
-        $(menu).find('li').removeClass(parent_active).find('span').removeClass(child_active);
-
-        var $tab_to_show = $(hash);
-        // if hash is a subtab or has subtabs
-        if ($tab_to_show.find('.tm-li-2').length > 0 || /tm-li-2/.test($(hash).attr('class'))) {
-            $tab_to_show = $tab_to_show.find('.tm-a-2').first().addClass(child_active).closest('.tm-li');
-        }
-        $tab_to_show.addClass(parent_active);
-
-        var content_to_show = 'div' + hash + '-content';
-        if ($(content_to_show).length === 0) {
-            content_to_show = 'div#' + $(hash).find('.tm-li-2').first().attr('id') + '-content';
-        }
-        $(content).find('> div').setVisibility(0).end().find(content_to_show).setVisibility(1);
-    };
-
-    var initSidebar = function initSidebar() {
-        var _window$location = window.location,
-            hash = _window$location.hash,
-            pathname = _window$location.pathname;
-
-
-        if (!hash) {
-            window.history.replaceState({}, '', pathname + '#legal-binary');
-        } else if ($(hash + '-link').is('.has-submenu')) {
-            window.history.replaceState({}, '', '' + pathname + hash + '-binary');
-        }
-
-        $('.sidebar-collapsible').on('click', sidebarClickHandler);
-        updateSidebarDOM();
-    };
-
-    var updateSidebarDOM = function updateSidebarDOM() {
-        var id = window.location.hash;
-        var $li = $(id + '-link');
-        var $parent_li = $li.closest('.has-submenu');
-
-        if ($parent_li.length) {
-            $parent_li.addClass('active').children('a').addClass('selected no-transition');
-        }
-
-        $li.addClass('active').find('a').addClass('selected');
-
-        $(id + '-content').removeClass('invisible');
-    };
-
-    var sidebarClickHandler = function sidebarClickHandler(e) {
-        var $target = $(e.target);
-        if (!$target.is('a')) return;
-        var $submenu = $target.siblings('ul');
-
-        if ($submenu.length) {
-            // parent link is clicked
-            e.preventDefault();
-
-            if ($submenu.find('.selected').length) {
-                // has selected sublink
-                $target.removeClass('no-transition').parent('li').toggleClass('active');
-            } else {
-                window.location.hash = $submenu.find('a')[0].hash;
-            }
-        }
-    };
-
-    var checkWidth = function checkWidth() {
-        var mq = window.matchMedia('(max-width: 1023px)').matches;
-        if (mq) {
-            $('.sidebar-collapsible').css({ position: 'relative' });
-            $(window).off('scroll', stickySidebar);
-        } else {
-            $(window).on('scroll', stickySidebar);
-        }
-        return mq;
-    };
-
-    var stickySidebar = function stickySidebar() {
-        var $sidebar = $('.sidebar-collapsible');
-        if (!$sidebar.is(':visible')) return;
-
-        var $content = $('.sidebar-collapsible-content');
-        var $container = $('.sidebar-collapsible-container');
-        var $content_height = $('.toggle-content:not(.invisible)')[0].offsetHeight;
-
-        // if scroll has not passed end of the sidebar yet or if text content is too short
-        // scrollbar should remain relative otherwise it will break the page
-        if (window.scrollY < $content.offset().top || $content_height < $sidebar[0].offsetHeight) {
-            $sidebar.css({ position: 'relative' });
-        } else if (window.scrollY + $sidebar[0].offsetHeight + 20 >= $container[0].offsetHeight + $container.offset().top) {
-            // 20 is the padding for content from bottom, to avoid menu snapping back up
-            $sidebar.css({ position: 'absolute', bottom: '20px', top: '', width: sidebar_width });
-        } else {
-            var position_style = 'fixed';
-            if (!!window.MSInputMethodContext && !!document.documentMode) {
-                // fix styling for IE11
-                position_style = 'static';
-            }
-            $sidebar.css({ position: position_style, top: '0px', bottom: '', width: sidebar_width });
-        }
-    };
-
-    var onUnload = function onUnload() {
-        $('.sidebar-collapsible').off('click');
-    };
-
-    return {
-        onLoad: onLoad,
-        onUnload: onUnload
-    };
-}();
-
-module.exports = TermsAndConditions;
 
 /***/ }),
 

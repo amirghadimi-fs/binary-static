@@ -463,12 +463,6 @@ button .barspinner.white {
 .sidebar-container {
   position: relative; }
 
-.sidebar-collapsible-container {
-  position: relative;
-  height: 100%; }
-  .sidebar-collapsible-container .has-submenu.active ul {
-    height: auto; }
-
 .sidebar ul {
   font-size: 1rem; }
   .sidebar ul li {

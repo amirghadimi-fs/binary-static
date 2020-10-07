@@ -2249,7 +2249,8 @@ body #not_authenticated_financial ul.checked > li {
   max-width: 496px; }
 
 .tnc {
-  margin-bottom: 96px; }
+  max-width: 776px;
+  margin: 64px auto 96px; }
   .tnc_img {
     display: block;
     width: 90%;
