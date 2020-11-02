@@ -11019,6 +11019,8 @@ var Header = function () {
                 }) < 0 ? Boolean(false) : Boolean(true);
             };
             var hasVerification = function hasVerification(string) {
+                var _get_account_status = get_account_status,
+                    prompt_client_to_authenticate = _get_account_status.prompt_client_to_authenticate;
                 var _authentication = authentication,
                     identity = _authentication.identity,
                     document = _authentication.document,
@@ -11053,7 +11055,7 @@ var Header = function () {
                         }
                     case 'rejected':
                         {
-                            result = verification_length === 2 && (identity.status !== 'none' || document.status !== 'none');
+                            result = verification_length === 2 && (identity.status !== 'none' || document.status !== 'none') && prompt_client_to_authenticate;
                             break;
                         }
                     case 'rejected_identity':
@@ -13689,7 +13691,7 @@ var banner_types = {
 };
 
 var DerivBanner = function () {
-    var el_rebranding_banner_countainer = void 0,
+    var el_rebranding_banner_container = void 0,
         el_multiplier_banner_container = void 0,
         el_banner_to_show = void 0,
         el_close_button = void 0,
@@ -13699,7 +13701,7 @@ var DerivBanner = function () {
         var is_deriv_banner_dismissed = localStorage.getItem('is_deriv_banner_dismissed');
 
         if (!is_deriv_banner_dismissed) {
-            el_rebranding_banner_countainer = getElementById('deriv_banner_container');
+            el_rebranding_banner_container = getElementById('deriv_banner_container');
             el_multiplier_banner_container = getElementById('multiplier_banner_container');
             deriv_banner_type = localStorage.getItem('deriv_banner_type');
 
@@ -13716,7 +13718,7 @@ var DerivBanner = function () {
 
     var showBanner = function showBanner() {
         if (deriv_banner_type === banner_types.rebranding) {
-            el_banner_to_show = el_rebranding_banner_countainer;
+            el_banner_to_show = el_rebranding_banner_container;
         } else {
             el_banner_to_show = el_multiplier_banner_container;
         }
@@ -13728,18 +13730,15 @@ var DerivBanner = function () {
             return;
         }
 
-        var banner_type = '';
+        var banner_type = Math.random() < 0.5 ? banner_types.rebranding : banner_types.multiplier;
 
-        if (Math.random() < 0.5) {
-            banner_type = banner_types.rebranding;
-        } else {
-            banner_type = banner_types.multiplier;
-        }
         localStorage.setItem('deriv_banner_type', banner_type);
     };
 
     var onUnload = function onUnload() {
-        el_close_button.removeEventListener('click', onClose);
+        if (el_close_button) {
+            el_close_button.removeEventListener('click', onClose);
+        }
     };
 
     return {
@@ -27085,7 +27084,7 @@ var Authenticate = function () {
 
     var initAuthentication = function () {
         var _ref2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2() {
-            var has_personal_details_error, authentication_status, service_token_response, personal_fields_errors, missing_personal_fields, error_msgs, identity, document, is_fully_authenticated, documents_supported;
+            var has_personal_details_error, authentication_status, service_token_response, personal_fields_errors, missing_personal_fields, error_msgs, identity, needs_verification, document, is_fully_authenticated, documents_supported;
             return regeneratorRuntime.wrap(function _callee2$(_context2) {
                 while (1) {
                     switch (_context2.prev = _context2.next) {
@@ -27135,7 +27134,7 @@ var Authenticate = function () {
                                 $('#missing_personal_fields').html(error_msgs);
                             }
 
-                            identity = authentication_status.identity, document = authentication_status.document;
+                            identity = authentication_status.identity, needs_verification = authentication_status.needs_verification, document = authentication_status.document;
                             is_fully_authenticated = identity.status === 'verified' && document.status === 'verified';
 
                             onfido_unsupported = !identity.services.onfido.is_country_supported;
@@ -27157,7 +27156,7 @@ var Authenticate = function () {
                             break;
 
                         case 21:
-                            if (identity.further_resubmissions_allowed) {
+                            if (needs_verification.includes('identity')) {
                                 _context2.next = 41;
                                 break;
                             }
@@ -27216,7 +27215,7 @@ var Authenticate = function () {
                             }
 
                         case 42:
-                            if (document.further_resubmissions_allowed) {
+                            if (needs_verification.includes('document')) {
                                 _context2.next = 62;
                                 break;
                             }
