@@ -9497,6 +9497,13 @@ var isEqualObject = function isEqualObject(obj1, obj2) {
     });
 };
 
+var removeObjProperties = function removeObjProperties(property_arr, obj) {
+    property_arr.forEach(function (property) {
+        return delete obj[property];
+    });
+    return obj;
+};
+
 // Filters out duplicates in an array of objects by key
 var unique = function unique(array, key) {
     return array.filter(function (e, idx) {
@@ -9646,7 +9653,8 @@ module.exports = {
     applyToAllElements: applyToAllElements,
     findParent: findParent,
     getStaticHash: getStaticHash,
-    PromiseClass: PromiseClass
+    PromiseClass: PromiseClass,
+    removeObjProperties: removeObjProperties
 };
 
 /***/ }),
@@ -12358,6 +12366,7 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 var isEmptyObject = __webpack_require__(/*! ../../_common/utility */ "./src/javascript/_common/utility.js").isEmptyObject;
+var removeObjProperties = __webpack_require__(/*! ../../_common/utility */ "./src/javascript/_common/utility.js").removeObjProperties;
 
 var submarket_order = {
     forex: 0,
@@ -12533,6 +12542,27 @@ var ActiveSymbols = function () {
         return trade_markets_list;
     };
 
+    // The unavailable underlyings are only offered on deriv.com.
+    var unavailable_underlyings = ['BOOM500', 'BOOM1000', 'CRASH500', 'CRASH1000', 'stpRNG'];
+
+    var getAvailableUnderlyings = function getAvailableUnderlyings(markets_list) {
+        var markets_list_clone = clone(markets_list);
+
+        Object.keys(markets_list_clone).forEach(function (market_key) {
+            Object.keys(markets_list_clone[market_key].submarkets).forEach(function (submarket_key) {
+                removeObjProperties(unavailable_underlyings, markets_list_clone[market_key].submarkets[submarket_key].symbols);
+                if (Object.keys(markets_list_clone[market_key].submarkets[submarket_key].symbols).length === 0) {
+                    delete markets_list_clone[market_key].submarkets[submarket_key];
+                }
+            });
+            if (Object.keys(markets_list_clone[market_key].submarkets).length === 0) {
+                delete markets_list_clone[market_key];
+            }
+        });
+        if (Object.keys(markets_list_clone).length === 0) return [];
+        return markets_list_clone;
+    };
+
     var getTradeUnderlyings = function getTradeUnderlyings(active_symbols) {
         var trade_underlyings = {};
         var all_symbols = getSymbols(active_symbols);
@@ -12567,7 +12597,8 @@ var ActiveSymbols = function () {
         clearData: clearData,
         getSymbols: getSymbols,
         getSymbolsForMarket: getSymbolsForMarket,
-        sortSubmarket: sortSubmarket
+        sortSubmarket: sortSubmarket,
+        getAvailableUnderlyings: getAvailableUnderlyings
     };
 }();
 
@@ -23334,7 +23365,9 @@ var Markets = (_temp = _class = function (_React$Component) {
         _initialiseProps.call(_this);
 
         var market_symbol = _defaults2.default.get('market');
-        _this.markets = _symbols2.default.markets();
+
+        var market_list = _symbols2.default.markets();
+        _this.markets = (0, _active_symbols.getAvailableUnderlyings)(market_list);
 
         _this.underlyings = _symbols2.default.getAllSymbols() || {};
         var underlying_symbol = _defaults2.default.get('underlying');
@@ -30301,7 +30334,6 @@ var Header = __webpack_require__(/*! ../../../../base/header */ "./src/javascrip
 var BinarySocket = __webpack_require__(/*! ../../../../base/socket */ "./src/javascript/app/base/socket.js");
 var FormManager = __webpack_require__(/*! ../../../../common/form_manager */ "./src/javascript/app/common/form_manager.js");
 var DatePicker = __webpack_require__(/*! ../../../../components/date_picker */ "./src/javascript/app/components/date_picker.js");
-var ClientBase = __webpack_require__(/*! ../../../../../_common/base/client_base */ "./src/javascript/_common/base/client_base.js");
 var CommonFunctions = __webpack_require__(/*! ../../../../../_common/common_functions */ "./src/javascript/_common/common_functions.js");
 var localize = __webpack_require__(/*! ../../../../../_common/localize */ "./src/javascript/_common/localize.js").localize;
 var State = __webpack_require__(/*! ../../../../../_common/storage */ "./src/javascript/_common/storage.js").State;
@@ -30322,18 +30354,18 @@ var PersonalDetails = function () {
         is_fully_authenticated = void 0,
         residence = void 0,
         get_settings_data = void 0,
-        changeable_fields = void 0,
         mt_acct_type = void 0,
         is_mt_tax_required = void 0,
+        validations = void 0,
         $tax_residence = void 0;
 
     var init = function init() {
         editable_fields = {};
         get_settings_data = {};
-        changeable_fields = [];
         is_virtual = Client.get('is_virtual');
         residence = Client.get('residence');
         mt_acct_type = getHashValue('mt5_redirect');
+        validations = [];
         // demo and synthetic mt accounts do not require tax info
         is_mt_tax_required = /real/.test(mt_acct_type) && mt_acct_type.split('_').length > 2 && +State.getResponse('landing_company.config.tax_details_required') === 1;
     };
@@ -30367,7 +30399,6 @@ var PersonalDetails = function () {
     };
 
     var showHideMissingDetails = function showHideMissingDetails() {
-        var validations = getValidations();
         var has_missing_field = validations.find(function (validation) {
             return (/req/.test(validation.validations) && $(validation.selector).val() === ''
             );
@@ -30375,39 +30406,27 @@ var PersonalDetails = function () {
         $('#missing_details_notice').setVisibility(!!has_missing_field);
     };
 
-    var populateChangeableFields = function populateChangeableFields() {
-        if (is_fully_authenticated) return;
-
-        var loginid = Client.get('loginid');
-        var landing_company = State.getResponse('landing_company');
-        var changeable = ClientBase.getLandingCompanyValue(loginid, landing_company, 'changeable_fields');
-        if (changeable && changeable.only_before_auth) {
-            changeable_fields = changeable_fields.concat(changeable.only_before_auth);
-        }
-    };
-
     /**
-     * Remove labels and static fields and replace them with input when fields are changeable.
+     * Remove inputs and replace them with labels and static fields when fields are immutable.
      *
-     * @param {get_settings} to prepopulate some of the values.
+     * @param get_settings to prepopulate some of the values.
      */
     var displayChangeableFields = function displayChangeableFields(get_settings) {
-        if (is_fully_authenticated) return;
-        changeable_fields.forEach(function (field) {
-            CommonFunctions.getElementById('row_' + field).setVisibility(1);
-            CommonFunctions.getElementById('row_lbl_' + field).setVisibility(0);
+        get_settings.immutable_fields.forEach(function (field) {
+            CommonFunctions.getElementById('row_' + field).setVisibility(0);
+            CommonFunctions.getElementById('row_lbl_' + field).setVisibility(1);
         });
 
         if (name_fields.some(function (key) {
-            return changeable_fields.includes(key);
+            return get_settings.immutable_fields.includes(key);
         })) {
-            CommonFunctions.getElementById('row_name').setVisibility(0);
+            CommonFunctions.getElementById('row_name').setVisibility(1);
             name_fields.forEach(function (field) {
-                return CommonFunctions.getElementById(field).setVisibility(1);
+                return CommonFunctions.getElementById(field).setVisibility(0);
             });
         }
 
-        if (changeable_fields.includes('date_of_birth')) {
+        if (!get_settings.immutable_fields.includes('date_of_birth')) {
             $('#date_of_birth').setVisibility(1);
 
             DatePicker.init({
@@ -30418,18 +30437,20 @@ var PersonalDetails = function () {
             });
         }
 
-        if (changeable_fields.includes('place_of_birth') || changeable_fields.includes('citizen')) {
+        var is_changeable_citizen = !get_settings.immutable_fields.includes('citizen');
+        var is_changeable_pob = !get_settings.immutable_fields.includes('place_of_birth');
+        if (is_changeable_pob || is_changeable_citizen) {
             var $options = $('<div/>');
             var residence_list = State.getResponse('residence_list');
             residence_list.forEach(function (res) {
                 $options.append(CommonFunctions.makeOption({ text: res.text, value: res.value }));
             });
             $options.prepend($('<option/>', { value: '', text: localize('Please select') }));
-            if (changeable_fields.includes('place_of_birth')) {
+            if (is_changeable_pob) {
                 $('#place_of_birth').html($options.html()).val(get_settings.place_of_birth);
             }
 
-            if (changeable_fields.includes('citizen')) {
+            if (is_changeable_citizen) {
                 $('#citizen').html($options.html()).val(get_settings.citizen);
             }
         }
@@ -30450,13 +30471,13 @@ var PersonalDetails = function () {
             get_settings.name = (get_settings.salutation || '') + ' ' + (get_settings.first_name || '') + ' ' + (get_settings.last_name || '');
         }
 
-        if (get_settings.place_of_birth && !changeable_fields.includes('place_of_birth') && residence_list) {
+        if (get_settings.place_of_birth && get_settings.immutable_fields.includes('place_of_birth') && residence_list) {
             get_settings.place_of_birth = (residence_list.find(function (obj) {
                 return obj.value === get_settings.place_of_birth;
             }) || {}).text || get_settings.place_of_birth;
         }
 
-        if (get_settings.citizen && !changeable_fields.includes('citizen') && residence_list) {
+        if (get_settings.citizen && get_settings.immutable_fields.includes('citizen') && residence_list) {
             get_settings.citizen = (residence_list.find(function (obj) {
                 return obj.value === get_settings.citizen;
             }) || {}).text || get_settings.citizen;
@@ -30467,19 +30488,19 @@ var PersonalDetails = function () {
         if (is_virtual) {
             $(real_acc_elements).remove();
         } else {
+            displayChangeableFields(data);
             $(real_acc_elements).setVisibility(1);
             showHideTaxMessage();
             CommonFunctions.getElementById('tax_information_form').setVisibility(shouldShowTax(get_settings));
             if (is_fully_authenticated) {
                 $(real_acc_auth_elements).setVisibility(1);
-            } else {
-                displayChangeableFields(data);
             }
         }
 
         $(form_id).setVisibility(1);
         $('#loading').remove();
-        FormManager.init(form_id, getValidations());
+        setValidations();
+        FormManager.init(form_id, validations);
         FormManager.handleSubmit({
             form_selector: form_id,
             obj_request: { set_settings: 1 },
@@ -30490,21 +30511,14 @@ var PersonalDetails = function () {
         showHideMissingDetails();
     };
 
-    var show_label_if_any_value = ['account_opening_reason', 'citizen', 'place_of_birth', 'date_of_birth', 'first_name', 'last_name', 'salutation'];
-    var force_update_fields = ['tax_residence', 'tax_identification_number'];
-
     var displayGetSettingsData = function displayGetSettingsData(get_settings) {
-        var show_label = [].concat(show_label_if_any_value);
-        if (is_fully_authenticated) {
-            show_label.push('tax_residence', 'tax_identification_number');
-        }
         Object.keys(get_settings).forEach(function (key) {
-            // If there are changeable fields, show input instead of labels instead.
-            var has_label = show_label.includes(key) && (!is_fully_authenticated ? !changeable_fields.includes(key) : true);
-            var force_update = force_update_fields.concat(changeable_fields).includes(key);
+            // If field is immutable and value was set by client, show label instead of input
+            var has_label = get_settings.immutable_fields.includes(key);
             var should_show_label = has_label && get_settings[key];
+
             var element_id = '' + (should_show_label ? 'lbl_' : '') + key;
-            var element_key = CommonFunctions.getElementById(element_id);
+            var element_key = document.getElementById(element_id);
             if (!element_key) return;
 
             editable_fields[key] = get_settings[key] !== null ? get_settings[key] : '';
@@ -30538,7 +30552,7 @@ var PersonalDetails = function () {
                     // If we show label, (input) row should be hidden
                     CommonFunctions.getElementById('row_' + key).setVisibility(0);
                 }
-                if (force_update) {
+                if (has_label) {
                     // Force pushing values, used for (API-)expected values
                     $element.attr({ 'data-force': true, 'data-value': el_value });
                 }
@@ -30582,8 +30596,7 @@ var PersonalDetails = function () {
         return Client.isAccountOfType('financial') && Client.shouldCompleteTax() || is_mt_tax_required;
     };
 
-    var getValidations = function getValidations() {
-        var validations = void 0;
+    var setValidations = function setValidations() {
         if (is_virtual) {
             validations = [{ selector: '#email_consent' }, { selector: '#residence', validations: ['req'] }];
         } else {
@@ -30591,7 +30604,7 @@ var PersonalDetails = function () {
             var is_gaming = Client.isAccountOfType('gaming');
             var is_tax_req = isTaxReq();
 
-            validations = [{ selector: '#address_line_1', validations: ['req', 'address'] }, { selector: '#address_line_2', validations: ['address'] }, { selector: '#address_city', validations: ['req', 'letter_symbol'] }, { selector: '#address_state', validations: $('#address_state').prop('nodeName') === 'SELECT' ? '' : ['letter_symbol'] }, { selector: '#address_postcode', validations: [residence === 'gb' || Client.get('landing_company_shortcode') === 'iom' ? 'req' : '', 'postcode', ['length', { min: 0, max: 20 }]] }, { selector: '#email_consent' }, { selector: '#phone', validations: ['req', 'phone', ['length', { min: 8, max: 35, value: function value() {
+            validations = [{ selector: '#salutation', validations: ['req'] }, { selector: '#first_name', validations: ['req', 'letter_symbol', ['length', { min: 2, max: 50 }]] }, { selector: '#last_name', validations: ['req', 'letter_symbol', ['length', { min: 2, max: 50 }]] }, { selector: '#address_line_1', validations: ['req', 'address'] }, { selector: '#address_line_2', validations: ['address'] }, { selector: '#address_city', validations: ['req', 'letter_symbol'] }, { selector: '#address_state', validations: $('#address_state').prop('nodeName') === 'SELECT' ? '' : ['letter_symbol'] }, { selector: '#address_postcode', validations: [residence === 'gb' || Client.get('landing_company_shortcode') === 'iom' ? 'req' : '', 'postcode', ['length', { min: 0, max: 20 }]] }, { selector: '#email_consent' }, { selector: '#phone', validations: ['req', 'phone', ['length', { min: 8, max: 35, value: function value() {
                         return $('#phone').val().replace(/\D/g, '');
                     } }]] }, { selector: '#place_of_birth', validations: ['req'] }, { selector: '#account_opening_reason', validations: ['req'] }, { selector: '#date_of_birth', validations: ['req'] },
 
@@ -30606,28 +30619,14 @@ var PersonalDetails = function () {
             // all mt account opening requires citizen
             { selector: '#citizen', validations: is_financial || is_gaming || mt_acct_type ? ['req'] : '' }, { selector: '#chk_tax_id', validations: is_financial ? [['req', { hide_asterisk: true, message: localize('Please confirm that all the information above is true and complete.') }]] : '', exclude_request: 1 }];
 
-            // Push validations for changeable fields.
-            changeable_fields.forEach(function (key) {
-                var selector = '#' + key;
-
-                // First name and last name validations
-                if (['first_name', 'last_name'].includes(key)) {
-                    validations.push({
-                        selector: selector,
-                        validations: ['req', 'letter_symbol', ['length', { min: 2, max: 50 }]]
-                    });
+            // loop backwards since we are removing array items
+            for (var i = validations.length - 1; i >= 0; i--) {
+                // if field is immutable, no need to validate or send it to API
+                if (!validations[i].exclude_request && get_settings_data.immutable_fields.includes(validations[i].selector.slice(1))) {
+                    validations.splice(i, 1);
                 }
-
-                // Required Without special treatment
-                if (['salutation'].includes(key)) {
-                    validations.push({
-                        selector: selector,
-                        validations: ['req']
-                    });
-                }
-            });
+            }
         }
-        return validations;
     };
 
     var setDetailsResponse = function setDetailsResponse(response) {
@@ -30654,6 +30653,7 @@ var PersonalDetails = function () {
                     return;
                 }
                 var get_settings = data.get_settings;
+                get_settings_data = get_settings;
                 var has_required_mt = is_mt_tax_required ? get_settings.tax_residence && get_settings.tax_identification_number && get_settings.citizen : get_settings.citizen; // only check Citizen if user selects mt synthetic account
                 if (mt_acct_type && has_required_mt) {
                     $.scrollTo($('h1#heading'), 500, { offset: -10 });
@@ -30667,9 +30667,7 @@ var PersonalDetails = function () {
                     getDetailsResponse(get_settings);
 
                     // Re-populate changeable fields based on incoming data
-                    if (!is_fully_authenticated) {
-                        displayChangeableFields(get_settings);
-                    }
+                    displayChangeableFields(get_settings);
                     showFormMessage(localize('Your settings have been updated successfully.'), true);
                 }
             });
@@ -30774,17 +30772,7 @@ var PersonalDetails = function () {
             get_settings_data = State.getResponse('get_settings');
             is_fully_authenticated = checkStatus(account_status, 'authenticated');
 
-            if (!residence) {
-                displayResidenceList();
-            } else if (is_fully_authenticated) {
-                displayResidenceList();
-                name_fields.forEach(function (field) {
-                    return CommonFunctions.getElementById('row_' + field).classList.add('invisible');
-                });
-            } else {
-                populateChangeableFields();
-                displayResidenceList();
-            }
+            displayResidenceList();
         });
     };
 
