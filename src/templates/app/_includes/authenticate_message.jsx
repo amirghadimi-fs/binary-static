@@ -10,7 +10,7 @@ const FileSelector = ({
     accepted_documents,
     type,
 }) => (
-    <div className='gr-12 gr-no-gutter' data-show={data_show}>
+    <div className='gr-12 gr-no-gutter file-selector' data-show={data_show} data-type={type}>
         <fieldset>
             <div className='gr-padding-10 gr-gutter-left gr-gutter-right'>
                 <h2>{heading}</h2>
@@ -45,7 +45,7 @@ const FileSelector = ({
                                 const j = i + 1;
                                 return (
                                     <React.Fragment key={i}>
-                                        <h3>{document.name}</h3>
+                                        <h3 data-show-onfido={(type === 'nigeria' && !document.is_nimc) ? document.value : ''}>{document.name}</h3>
                                         <div className='fields'>
                                             { type === 'poi' && (
                                                 <React.Fragment>
@@ -77,6 +77,36 @@ const FileSelector = ({
                                                     </div>
                                                 </React.Fragment>
                                             )}
+                                            { document.is_nimc && (
+                                                <React.Fragment>
+                                                    <div className='gr-row form-row center-text-m'>
+                                                        <div className='gr-4 gr-12-m'>
+                                                            <label htmlFor={`id_number_${j}`}>{it.L('ID number')}<span className='required_field_asterisk'>*</span>:</label>
+                                                        </div>
+                                                        <div className='gr-8 gr-12-m'>
+                                                            <input id={`id_number_${j}`} type='text' maxLength='30' />
+                                                        </div>
+                                                    </div>
+                                                    <div className='gr-row form-row center-text-m' id={`expiry_datepicker_${document.value}`}>
+                                                        <div className='gr-4 gr-12-m'>
+                                                            <label htmlFor={`exp_date_${j}`}>{it.L('Expiry date')}<span className='required_field_asterisk'>*</span>:</label>
+                                                        </div>
+                                                        <div className='gr-8 gr-12-m'>
+                                                            <input className='date-picker' id={`exp_date_${j}`} type='text' maxLength='200' readOnly='readonly' />
+                                                        </div>
+                                                    </div>
+                                                    <div className='gr-row form-row center-text-m'>
+                                                        <div className='gr-12'>
+                                                            <input id={`front_file${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={document.value} data-name={document.name} data-page-type='front' />
+                                                            <label htmlFor={`front_file${j}`} className='button'>{it.L('Add the NIMC slip')} <span className='add' /></label>
+                                                        </div>
+                                                        <div className='gr-12'>
+                                                            <input id={`back_file${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={document.value} data-name={document.name} data-page-type='front' />
+                                                            <label htmlFor={`back_file${j}`} className='button'>{it.L('Add age declaration document')} <span className='add' /></label>
+                                                        </div>
+                                                    </div>
+                                                </React.Fragment>
+                                            )}
                                             { type === 'poa' && (
                                                 <div className='gr-row form-row gr-centered'>
                                                     <div className='gr-12'>
@@ -85,7 +115,7 @@ const FileSelector = ({
                                                     </div>
                                                 </div>
                                             )}
-                                            { type === 'selfie' && (
+                                            { (type === 'selfie') && (
                                                 <div className='gr-row form-row gr-centered'>
                                                     <div className='gr-12'>
                                                         <input id={`selfie${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png' data-type='other' data-name={document.name} data-page-type='photo' />
@@ -98,6 +128,22 @@ const FileSelector = ({
                                 );
                             })}
                         </div>
+                        { type === 'nigeria' && (
+                            <React.Fragment>
+                                <p className='font-s'>{it.L('Upload your selfie')}</p>
+                                <div className='files'>
+                                    <h3>{it.L('Your selfie')}</h3>
+                                    <div className='fields'>
+                                        <div className='gr-row form-row gr-centered'>
+                                            <div className='gr-12'>
+                                                <input id='selfie' className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png' data-type='other' data-name={it.L('Your selfie')} data-page-type='photo' />
+                                                <label htmlFor='selfie' className='button'>{it.L('Add')} <span className='add' /></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </React.Fragment>
+                        )}
                     </div>
                 </div>
             </div>
@@ -130,6 +176,31 @@ export const UnsupportedMessage = () => (
                 { name: it.L('Passport'), value: 'passport' },
                 { name: it.L('Identity card'), value: 'national_identity_card' },
                 { name: it.L('Driving licence'), value: 'driving_licence' },
+            ]}
+        />
+
+        <FileSelector
+            heading={it.L('1. Proof of identity')}
+            allowed_documents={[
+                it.L('Passport'),
+                it.L('Driving licence'),
+                it.L('National ID card, ID book or any government-issued document which contains a photo, your name, and date of birth'),
+                it.L('NIMC slip'),
+            ]}
+            instructions={[
+                it.L('Must be a clear, colour photo or scanned image'),
+                it.L('Minimum of six months validity'),
+                it.L('Only JPG, JPEG, GIF, PNG and PDF formats are accepted'),
+                it.L('Maximum upload size for each file is [_1]', '8MB'),
+                it.L('Upload both of NIMC slip and an age declaration document to prove your identity.'),
+                it.L('When taking your selfie, face forward and remove your glasses if necessary. Make sure your eyes are clearly visible and your face is within the frame.'),
+            ]}
+            type='nigeria'
+            accepted_documents={[
+                { name: it.L('Passport'), value: 'Passport' },
+                { name: it.L('Identity card'), value: 'National Identity Card' },
+                { name: it.L('Driving licence'), value: 'Driving Licence' },
+                { name: it.L('NIMC slip and an age declaration document'), value: 'national_identity_card', is_nimc: true },
             ]}
         />
 

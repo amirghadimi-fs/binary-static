@@ -29,12 +29,15 @@ const Authenticate = (() => {
     let file_checks          = {};
     let file_checks_uns      = {};
     let onfido,
+        onfido_token,
+        country_code,
         $button,
         $submit_status,
         $submit_table,
         $button_uns,
         $submit_status_uns,
-        $submit_table_uns;
+        $submit_table_uns,
+        $show_onfido_btns;
 
     const init = () => {
         file_checks    = {};
@@ -71,11 +74,22 @@ const Authenticate = (() => {
             $('#exp_date_2').datepicker('setDate', '2099-12-31');
         }
     };
+    
+    const showOnfido = e => {
+        e.preventDefault();
+        const data_show_onfido = e.target.getAttribute('data-show-onfido');
+        document.querySelector('#not_authenticated_uns').setVisibility(0);
+        
+        initOnfido(onfido_token, [data_show_onfido], country_code);
+    };
 
     const initUnsupported = () => {
         file_checks_uns    = {};
         $submit_status_uns = $('.submit-status-uns');
         $submit_table_uns  = $submit_status_uns.find('table tbody');
+        const $file_selectors = document.querySelectorAll('.file-selector');
+        const client_country = Client.get('residence') || State.getResponse('website_status.clients_country');
+        const is_nigeria = client_country === 'ng';
 
         // Setup accordion
         $('#not_authenticated_uns .files').accordion({
@@ -102,6 +116,27 @@ const Authenticate = (() => {
         if (isIdentificationNoExpiry(Client.get('residence'))) {
             $('#expiry_datepicker_proofid').setVisibility(0);
             $('#exp_date_2').datepicker('setDate', '2099-12-31');
+        }
+
+        $file_selectors.forEach($el => {
+            const type = $el.getAttribute('data-type');
+
+            if (is_nigeria && type !== 'nigeria') {
+                $el.setVisibility(0);
+            } else if (!is_nigeria && type === 'nigeria') {
+                $el.setVisibility(0);
+            }
+        });
+
+        if (is_nigeria) {
+            const $nigeria_file_selector = document.querySelector('[data-type="nigeria"]');
+            $show_onfido_btns = $nigeria_file_selector.querySelectorAll('h3[data-show-onfido]');
+            $show_onfido_btns.forEach($el => {
+                const data_show_onfido = $el.getAttribute('data-show-onfido');
+                if (data_show_onfido) {
+                    $el.addEventListener('click', showOnfido);
+                }
+            });
         }
     };
 
@@ -937,6 +972,7 @@ const Authenticate = (() => {
         }
 
         const service_token_response = await getOnfidoServiceToken();
+        onfido_token = service_token_response.token;
 
         if (
             service_token_response.error &&
@@ -966,9 +1002,10 @@ const Authenticate = (() => {
 
         const is_fully_authenticated = identity.status === 'verified' && document.status === 'verified';
         const should_allow_resubmission = needs_verification.includes('identity') || needs_verification.includes('document');
-        onfido_unsupported = !identity.services.onfido.is_country_supported;
+        const client_country = Client.get('residence') || State.getResponse('website_status.clients_country');
+        onfido_unsupported = !identity.services.onfido.is_country_supported || client_country === 'ng';
         const documents_supported = identity.services.onfido.documents_supported;
-        const country_code = identity.services.onfido.country_code;
+        country_code = identity.services.onfido.country_code;
 
         if (is_fully_authenticated && !should_allow_resubmission) {
             $('#authentication_tab').setVisibility(0);
@@ -988,7 +1025,7 @@ const Authenticate = (() => {
                         $('#not_authenticated_uns').setVisibility(1);
                         initUnsupported();
                     } else {
-                        initOnfido(service_token_response.token, documents_supported, country_code);
+                        initOnfido(onfido_token, documents_supported, country_code);
                     }
                     break;
                 case 'pending':
@@ -1015,7 +1052,7 @@ const Authenticate = (() => {
                 $('#not_authenticated_uns').setVisibility(1);
                 initUnsupported();
             } else {
-                initOnfido(service_token_response.token, documents_supported, country_code);
+                initOnfido(onfido_token, documents_supported, country_code);
             }
         }
         if (!needs_verification.includes('document')) {
@@ -1075,6 +1112,15 @@ const Authenticate = (() => {
     const onUnload = () => {
         if (onfido) {
             onfido.tearDown();
+        }
+
+        if ($show_onfido_btns) {
+            $show_onfido_btns.forEach($el => {
+                const data_show_onfido = $el.getAttribute('data-show-onfido');
+                if (data_show_onfido) {
+                    $el.removeEventListener('click', showOnfido);
+                }
+            });
         }
 
         TabSelector.onUnload();
