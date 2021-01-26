@@ -87,9 +87,7 @@ const Authenticate = (() => {
         file_checks_uns    = {};
         $submit_status_uns = $('.submit-status-uns');
         $submit_table_uns  = $submit_status_uns.find('table tbody');
-        const $file_selectors = document.querySelectorAll('.file-selector');
-        const client_country = Client.get('residence') || State.getResponse('website_status.clients_country');
-        const is_nigeria = client_country === 'ng';
+        const is_nigeria = country_code === 'NGA';
 
         // Setup accordion
         $('#not_authenticated_uns .files').accordion({
@@ -118,18 +116,9 @@ const Authenticate = (() => {
             $('#exp_date_2').datepicker('setDate', '2099-12-31');
         }
 
-        $file_selectors.forEach($el => {
-            const type = $el.getAttribute('data-type');
-
-            if (is_nigeria && type !== 'nigeria') {
-                $el.setVisibility(0);
-            } else if (!is_nigeria && type === 'nigeria') {
-                $el.setVisibility(0);
-            }
-        });
-
         if (is_nigeria) {
             const $nigeria_file_selector = document.querySelector('[data-type="nigeria"]');
+            document.querySelector('[data-type="poi"]').setVisibility(0);
             $show_onfido_btns = $nigeria_file_selector.querySelectorAll('h3[data-show-onfido]');
             $show_onfido_btns.forEach($el => {
                 const data_show_onfido = $el.getAttribute('data-show-onfido');
@@ -137,6 +126,8 @@ const Authenticate = (() => {
                     $el.addEventListener('click', showOnfido);
                 }
             });
+        } else {
+            document.querySelector('[data-type="nigeria"]').setVisibility(0);
         }
     };
 
@@ -279,11 +270,13 @@ const Authenticate = (() => {
     const enableDisableSubmitUns = () => {
         const $not_authenticated = $('#not_authenticated_uns');
         const $files             = $not_authenticated.find('input[type="file"]');
+        const is_nigeria = country_code === 'NGA';
         $button_uns = $not_authenticated.find('#btn_submit_uns');
 
         const file_selected  = $('label[class~="selected"]').length;
-
-        if (file_selected) {
+        const file_uploaded  = $('label span[class~="checked"]').length;
+        const is_submit_disabled = !file_selected || (is_nigeria && (file_selected + file_uploaded) < 3);
+        if (!is_submit_disabled) {
             if ($button_uns.hasClass('button')) return;
             $('#resolve_error').setVisibility(0);
             $button_uns.removeClass('button-disabled')
@@ -1005,11 +998,10 @@ const Authenticate = (() => {
 
         const is_fully_authenticated = identity.status === 'verified' && document.status === 'verified';
         const should_allow_resubmission = needs_verification.includes('identity') || needs_verification.includes('document');
-        const client_country = Client.get('residence') || State.getResponse('website_status.clients_country');
-        onfido_unsupported = !identity.services.onfido.is_country_supported || client_country === 'ng';
-        const documents_supported = identity.services.onfido.documents_supported;
         country_code = identity.services.onfido.country_code;
-
+        onfido_unsupported = !identity.services.onfido.is_country_supported || country_code === 'NGA';
+        const documents_supported = identity.services.onfido.documents_supported;
+        
         if (is_fully_authenticated && !should_allow_resubmission) {
             $('#authentication_tab').setVisibility(0);
             $('#authentication_verified').setVisibility(1);

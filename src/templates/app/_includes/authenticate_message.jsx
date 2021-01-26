@@ -10,7 +10,7 @@ const FileSelector = ({
     accepted_documents,
     type,
 }) => (
-    <div className='gr-12 gr-no-gutter file-selector' data-show={data_show} data-type={type}>
+    <div className='gr-12 gr-no-gutter' data-show={data_show} data-type={type}>
         <fieldset>
             <div className='gr-padding-10 gr-gutter-left gr-gutter-right'>
                 <h2>{heading}</h2>
@@ -115,7 +115,7 @@ const FileSelector = ({
                                                     </div>
                                                 </div>
                                             )}
-                                            { (type === 'selfie') && (
+                                            { type === 'selfie' && (
                                                 <div className='gr-row form-row gr-centered'>
                                                     <div className='gr-12'>
                                                         <input id={`selfie${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png' data-type='other' data-name={document.name} data-page-type='photo' />
