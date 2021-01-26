@@ -230,7 +230,11 @@ const Authenticate = (() => {
     const resetLabelUns = (event) => {
         const $target = $(event.target);
         let default_text = toTitleCase($target.attr('id').split('_')[0]);
-        if (default_text !== 'Add') {
+        const has_name = default_text === 'Nimc' || default_text === 'Dob';
+        
+        if (has_name) {
+            default_text = `Add ${event.target.getAttribute('data-name')}`;
+        } else if (default_text !== 'Add') {
             default_text = default_text === 'Back' ? localize('Reverse Side') : localize('Front Side');
         }
         fileTracker($target, false);
@@ -278,9 +282,8 @@ const Authenticate = (() => {
         $button_uns = $not_authenticated.find('#btn_submit_uns');
 
         const file_selected  = $('label[class~="selected"]').length;
-        const has_file_error = $('label[class~="error"]').length;
 
-        if (file_selected && !has_file_error) {
+        if (file_selected) {
             if ($button_uns.hasClass('button')) return;
             $('#resolve_error').setVisibility(0);
             $button_uns.removeClass('button-disabled')
@@ -869,7 +872,7 @@ const Authenticate = (() => {
         });
     });
 
-    const initOnfido = async (sdk_token, documents_supported, country_code) => {
+    const initOnfido = async (sdk_token, documents_supported, country) => {
         if (!$('#onfido').is(':parent')) {
             $('#onfido').setVisibility(1);
 
@@ -891,10 +894,10 @@ const Authenticate = (() => {
                                 documentTypes: {
                                     passport       : documents_supported.some(doc => /Passport/g.test(doc)),
                                     driving_licence: documents_supported.some(doc => /Driving Licence/g.test(doc)) ? {
-                                        country: country_code,
+                                        country,
                                     } : false,
                                     national_identity_card: documents_supported.some(doc => /National Identity Card/g.test(doc)) ? {
-                                        country: country_code,
+                                        country,
                                     } : false,
                                 },
                             },

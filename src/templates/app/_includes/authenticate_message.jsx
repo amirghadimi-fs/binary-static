@@ -97,12 +97,12 @@ const FileSelector = ({
                                                     </div>
                                                     <div className='gr-row form-row center-text-m'>
                                                         <div className='gr-12'>
-                                                            <input id={`front_file${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={document.value} data-name={document.name} data-page-type='front' />
-                                                            <label htmlFor={`front_file${j}`} className='button'>{it.L('Add the NIMC slip')} <span className='add' /></label>
+                                                            <input id={`nimc_${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={document.value} data-name={it.L('the NIMC slip')} data-page-type='front' />
+                                                            <label htmlFor={`nimc_${j}`} className='button'>{it.L('Add the NIMC slip')} <span className='add' /></label>
                                                         </div>
                                                         <div className='gr-12'>
-                                                            <input id={`back_file${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={document.value} data-name={document.name} data-page-type='front' />
-                                                            <label htmlFor={`back_file${j}`} className='button'>{it.L('Add age declaration document')} <span className='add' /></label>
+                                                            <input id={`dob_${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={'other'} data-name={it.L('age declaration document')} data-page-type='front' />
+                                                            <label htmlFor={`dob_${j}`} className='button'>{it.L('Add age declaration document')} <span className='add' /></label>
                                                         </div>
                                                     </div>
                                                 </React.Fragment>
