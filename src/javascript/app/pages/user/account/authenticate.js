@@ -727,11 +727,13 @@ const Authenticate = (() => {
 
     // Validate user input
     const validate = (file) => {
+        const is_nigeria = country_code === 'NGA';
         const required_docs = ['passport', 'national_identity_card', 'driving_licence'];
         const doc_name = {
             passport              : localize('Passport'),
-            national_identity_card: localize('Identity card'),
+            national_identity_card: is_nigeria ? localize('NIMC slip') : localize('Identity card'),
             driving_licence       : localize('Driving licence'),
+            other                 : is_nigeria ? localize('Age declaration document') : '',
         };
 
         const accepted_formats_regex = /selfie/.test(file.passthrough.class)
