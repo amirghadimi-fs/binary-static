@@ -10216,7 +10216,7 @@ var pages_config = {
     realws: { module: RealAccOpening, is_authenticated: true },
     redirect: { module: Redirect },
     regulation: { module: Regulation },
-    reset_passwordws: { module: ResetPassword, not_authenticated: true },
+    reset_passwordws: { module: ResetPassword, not_authenticated: false },
     resources: { module: Dashboard },
     securityws: { module: Settings, is_authenticated: true },
     self_exclusionws: { module: SelfExclusion, is_authenticated: true, only_real: true },
@@ -15969,6 +15969,7 @@ var getPropertyValue = __webpack_require__(/*! ../../../_common/utility */ "./sr
 
 var Cashier = function () {
     var href = '';
+    var default_virtual_balance = 10000;
 
     var showContent = function showContent() {
         Client.activateByClientType();
@@ -16075,6 +16076,10 @@ var Cashier = function () {
         }());
     };
 
+    var isDefaultVirtualBalance = function isDefaultVirtualBalance() {
+        return +Client.get('balance') === default_virtual_balance;
+    };
+
     var displayResetButton = function displayResetButton() {
         var el_virtual_topup_info = getElementById('virtual_topup_info');
         var top_up_id = '#VRT_topup_link';
@@ -16083,6 +16088,10 @@ var Cashier = function () {
         var new_el = { class: 'toggle button', html: $a.html(), id: $a.attr('id') };
         href = href || Url.urlFor('/cashier/top_up_virtualws');
         new_el.href = href;
+        if (isDefaultVirtualBalance()) {
+            new_el.class = 'toggle button button-disabled';
+            new_el.href = '';
+        }
         el_virtual_topup_info.innerText = localize('Reset the balance of your virtual account to [_1] anytime.', [Client.get('currency') + ' 10,000.00']);
         $a.replaceWith($('<a/>', new_el));
         $(top_up_id).parent().setVisibility(1);
@@ -16209,13 +16218,17 @@ var Cashier = function () {
     };
 
     var onLoad = function onLoad() {
+        var is_virtual = Client.get('is_virtual');
+        if (is_virtual && isDefaultVirtualBalance()) {
+            getElementById('VRT_topup_link').classList.add('button-disabled');
+        }
         if (Client.isLoggedIn()) {
             BinarySocket.send({ statement: 1, limit: 1 });
             BinarySocket.wait('authorize', 'mt5_login_list', 'statement', 'get_account_status', 'landing_company').then(function () {
                 checkStatusIsLocked(State.getResponse('get_account_status'));
                 var residence = Client.get('residence');
                 var currency = Client.get('currency');
-                if (Client.get('is_virtual')) {
+                if (is_virtual) {
                     displayResetButton();
                 } else if (currency) {
                     var is_p2p_allowed_currency = currency === 'USD';
@@ -27242,11 +27255,13 @@ var Authenticate = function () {
 
     // Validate user input
     var validate = function validate(file) {
+        var is_nigeria = country_code === 'NGA';
         var required_docs = ['passport', 'national_identity_card', 'driving_licence'];
         var doc_name = {
             passport: localize('Passport'),
-            national_identity_card: localize('Identity card'),
-            driving_licence: localize('Driving licence')
+            national_identity_card: is_nigeria ? localize('NIMC slip') : localize('Identity card'),
+            driving_licence: localize('Driving licence'),
+            other: is_nigeria ? localize('Age declaration document') : ''
         };
 
         var accepted_formats_regex = /selfie/.test(file.passthrough.class) ? /^(PNG|JPG|JPEG|GIF)$/i : /^(PNG|JPG|JPEG|GIF|PDF)$/i;
@@ -32565,9 +32580,7 @@ module.exports = TopUpVirtualPopup;
 "use strict";
 
 
-var Client = __webpack_require__(/*! ../../../../base/client */ "./src/javascript/app/base/client.js");
 var BinarySocket = __webpack_require__(/*! ../../../../base/socket */ "./src/javascript/app/base/socket.js");
-var formatMoney = __webpack_require__(/*! ../../../../common/currency */ "./src/javascript/app/common/currency.js").formatMoney;
 var localize = __webpack_require__(/*! ../../../../../_common/localize */ "./src/javascript/_common/localize.js").localize;
 
 var TopUpVirtual = function () {
@@ -32586,7 +32599,7 @@ var TopUpVirtual = function () {
             if (response.error) {
                 showMessage(response.error.message, false);
             } else {
-                showMessage(localize('[_1] has been credited into your Virtual Account: [_2].', [formatMoney(response.topup_virtual.currency, response.topup_virtual.amount), Client.get('loginid')]), true);
+                showMessage(localize('Your virtual balance has been reset.'), true);
             }
             $('.barspinner').setVisibility(0);
         });
@@ -33038,6 +33051,8 @@ var isBinaryApp = __webpack_require__(/*! ../../../config */ "./src/javascript/c
 
 var LostPassword = function () {
     var form_id = '#frm_lost_password';
+    var notice_id = '#lost_password_notice';
+    var form_wrapper_id = '#lost_password_form';
 
     var responseHandler = function responseHandler(response) {
         if (response.verify_email) {
@@ -33049,7 +33064,10 @@ var LostPassword = function () {
                     BinaryPjax.load(urlFor('user/reset_passwordws') + '#token=' + $('#txt_verification_code').val());
                 }, false);
             } else {
-                $(form_id).html($('<div/>', { class: 'notice-msg', text: localize('Please check your email for the password reset link.') }));
+                $(form_id).html($('<div/>', {
+                    class: 'notice-msg',
+                    text: localize('Please check your email for the password reset link.')
+                }));
             }
         } else if (response.error) {
             var $form_error = $('#form_error');
@@ -33061,10 +33079,19 @@ var LostPassword = function () {
     };
 
     var onLoad = function onLoad() {
-        FormManager.init(form_id, [{ selector: '#email', validations: [['req', { hide_asterisk: true }], 'email'], request_field: 'verify_email' }, { request_field: 'type', value: 'reset_password' }]);
-        FormManager.handleSubmit({
-            form_selector: form_id,
-            fnc_response_handler: responseHandler
+        $('#lost_password_notice_button').on('click', function () {
+            $(form_wrapper_id).setVisibility(1);
+            $(notice_id).setVisibility(0);
+
+            FormManager.init(form_id, [{
+                selector: '#email',
+                validations: [['req', { hide_asterisk: true }], 'email'],
+                request_field: 'verify_email'
+            }, { request_field: 'type', value: 'reset_password' }]);
+            FormManager.handleSubmit({
+                form_selector: form_id,
+                fnc_response_handler: responseHandler
+            });
         });
     };
 
@@ -33419,7 +33446,6 @@ var MetaTraderConfig = function () {
                 $('#financial_authenticate_msg').setVisibility(isAuthenticationPromptNeeded());
             }
         },
-
         password_change: {
             title: localize('Change Password'),
             success_msg: function success_msg(response) {
@@ -33539,7 +33565,7 @@ var MetaTraderConfig = function () {
             }
         },
         password_reset: {
-            ddl_password_type: { id: '#ddl_reset_password_type', request_field: 'password_type', is_radio: true },
+            password_type: { id: '#reset_password_type', request_field: 'password_type' },
             txt_new_password: { id: '#txt_reset_new_password', request_field: 'new_password' },
             txt_re_new_password: { id: '#txt_reset_re_new_password' },
             additional_fields: function additional_fields(acc_type, token) {
@@ -33584,7 +33610,7 @@ var MetaTraderConfig = function () {
         return {
             new_account: [{ selector: fields.new_account.txt_name.id, validations: [['req', { hide_asterisk: true }], 'letter_symbol', ['length', { min: 2, max: 101 }]] }, { selector: fields.new_account.txt_main_pass.id, validations: [['req', { hide_asterisk: true }], 'password', 'compare_to_email'] }, { selector: fields.new_account.txt_re_main_pass.id, validations: [['req', { hide_asterisk: true }], ['compare', { to: fields.new_account.txt_main_pass.id }]] }, { selector: fields.new_account.ddl_trade_server.id, validations: [['req', { hide_asterisk: true }]] }],
             password_change: [{ selector: fields.password_change.ddl_password_type.id, validations: [['req', { hide_asterisk: true }]] }, { selector: fields.password_change.txt_old_password.id, validations: [['req', { hide_asterisk: true }]] }, { selector: fields.password_change.txt_new_password.id, validations: [['req', { hide_asterisk: true }], 'password', ['not_equal', { to: fields.password_change.txt_old_password.id, name1: localize('Current password'), name2: localize('New password') }], 'compare_to_email'], re_check_field: fields.password_change.txt_re_new_password.id }, { selector: fields.password_change.txt_re_new_password.id, validations: [['req', { hide_asterisk: true }], ['compare', { to: fields.password_change.txt_new_password.id }]] }],
-            password_reset: [{ selector: fields.password_reset.ddl_password_type.id, validations: [['req', { hide_asterisk: true }]] }, { selector: fields.password_reset.txt_new_password.id, validations: [['req', { hide_asterisk: true }], 'password', 'compare_to_email'], re_check_field: fields.password_reset.txt_re_new_password.id }, { selector: fields.password_reset.txt_re_new_password.id, validations: [['req', { hide_asterisk: true }], ['compare', { to: fields.password_reset.txt_new_password.id }]] }],
+            password_reset: [{ selector: fields.password_reset.password_type.id, validations: [['req', { hide_asterisk: true }]] }, { selector: fields.password_reset.txt_new_password.id, validations: [['req', { hide_asterisk: true }], 'password', 'compare_to_email'], re_check_field: fields.password_reset.txt_re_new_password.id }, { selector: fields.password_reset.txt_re_new_password.id, validations: [['req', { hide_asterisk: true }], ['compare', { to: fields.password_reset.txt_new_password.id }]] }],
             verify_password_reset_token: [{ selector: fields.verify_password_reset_token.txt_verification_code.id, validations: [['req', { hide_asterisk: true }], 'token'], exclude_request: 1 }],
             deposit: [{
                 selector: fields.deposit.txt_amount.id,
@@ -34066,7 +34092,6 @@ var MetaTrader = function () {
 
     var submit = function submit(e) {
         e.preventDefault();
-
         if (show_new_account_popup) {
             MetaTraderUI.showNewAccountConfirmationPopup(e, function () {
                 return show_new_account_popup = false;
@@ -34111,7 +34136,8 @@ var MetaTrader = function () {
                                             break;
                                         }
 
-                                        MetaTraderUI.displayFormMessage(response.error.message, action);
+                                        MetaTraderUI.displayFormMessage(response.error.message, action, response.error.code);
+
                                         if (typeof actions_info[action].onError === 'function') {
                                             actions_info[action].onError(response, MetaTraderUI.$form());
                                         }
@@ -34372,6 +34398,7 @@ var BinarySocket = __webpack_require__(/*! ../../../base/socket */ "./src/javasc
 var Dialog = __webpack_require__(/*! ../../../common/attach_dom/dialog */ "./src/javascript/app/common/attach_dom/dialog.js");
 var Currency = __webpack_require__(/*! ../../../common/currency */ "./src/javascript/app/common/currency.js");
 var Validation = __webpack_require__(/*! ../../../common/form_validation */ "./src/javascript/app/common/form_validation.js");
+var ClientBase = __webpack_require__(/*! ../../../../_common/base/client_base */ "./src/javascript/_common/base/client_base.js");
 var getTransferFee = __webpack_require__(/*! ../../../../_common/base/currency_base */ "./src/javascript/_common/base/currency_base.js").getTransferFee;
 var getElementById = __webpack_require__(/*! ../../../../_common/common_functions */ "./src/javascript/_common/common_functions.js").getElementById;
 var localize = __webpack_require__(/*! ../../../../_common/localize */ "./src/javascript/_common/localize.js").localize;
@@ -34439,11 +34466,19 @@ var MetaTraderUI = function () {
             if ($list.find('[value="' + acc_type + '"]').length === 0) {
                 if (accounts_info[acc_type].is_demo) {
                     if (!acc_group_demo_set) {
-                        $list.append($('<div/>', { class: 'acc-group invisible', id: 'acc_group_demo', text: localize('Demo Accounts') }));
+                        $list.append($('<div/>', {
+                            class: 'acc-group invisible',
+                            id: 'acc_group_demo',
+                            text: localize('Demo Accounts')
+                        }));
                         acc_group_demo_set = true;
                     }
                 } else if (!acc_group_real_set) {
-                    $list.append($('<div/>', { class: 'acc-group invisible', id: 'acc_group_real', text: localize('Real-Money Accounts') }));
+                    $list.append($('<div/>', {
+                        class: 'acc-group invisible',
+                        id: 'acc_group_real',
+                        text: localize('Real-Money Accounts')
+                    }));
                     acc_group_real_set = true;
                 }
                 var $acc_item = $acc_name.clone();
@@ -34568,8 +34603,8 @@ var MetaTraderUI = function () {
                 if (disabled_signup_types.real) {
                     return;
                 }
-                var $back_button = _$form.find('#view_2 .btn-back');
-                var $cancel_button = _$form.find('#view_2 .btn-cancel');
+                var $back_button = _$form.find('#view_password .btn-back');
+                var $cancel_button = _$form.find('#view_password .btn-cancel');
                 var account_type = Client.get('mt5_account');
 
                 loadAction('new_account', account_type);
@@ -34681,10 +34716,11 @@ var MetaTraderUI = function () {
     };
 
     var loadAction = function loadAction(action, acc_type, should_hide_cancel) {
+        $('a.reset-password').on('click', resetPasswordHandler);
         $container.find('[class~=act_' + (action || defaultAction(acc_type)) + ']').click();
         if (should_hide_cancel) {
             _$form.find('#view_1 .btn-cancel').hide();
-            _$form.find('#view_2 .btn-cancel').hide();
+            _$form.find('#view_password .btn-cancel').hide();
         }
     };
 
@@ -34714,14 +34750,40 @@ var MetaTraderUI = function () {
 
             // append form
             $action.find('#frm_action').html(_$form).setVisibility(1).end().setVisibility(1);
-
             if (action === 'manage_password') {
                 _$form.find('button[type="submit"]').append(accounts_info[acc_type].info.display_login ? ' ' + localize('for account [_1]', accounts_info[acc_type].info.display_login) : '');
-                if (!token) {
-                    _$form.find('#frm_verify_password_reset').setVisibility(1);
-                } else if (!Validation.validEmailToken(token)) {
-                    _$form.find('#frm_verify_password_reset').find('#token_error').setVisibility(1).end().setVisibility(1);
+                _$form.find('#btn_reset_investor_password').on('click', function () {
+                    mt5ResetPasswordHandler().then(function (response) {
+                        if (!response.error) {
+                            _$form.find('#frm_investor_check_mail').setVisibility(1);
+                            _$form.find('#frm_password_change').setVisibility(0);
+                        }
+                    });
+                });
+                var status = State.getResponse('get_account_status').status;
+                var is_existing_user = status.indexOf('password_reset_required') !== -1;
+                _$form.find('#frm_verify_password_reset').setVisibility(1);
+                _$form.find('#txt_change_main_password_existing_users').setVisibility(is_existing_user);
+                _$form.find('#txt_change_main_password_new_users').setVisibility(!is_existing_user);
+                _$form.find('#main_reset_password').setVisibility(is_existing_user);
+                _$form.find('#btn_go_to_setting').setVisibility(!is_existing_user);
+                _$form.find('#main_reset_password').on('click', function () {
+                    var email = ClientBase.get('email');
+                    BinarySocket.send({
+                        type: 'reset_password',
+                        verify_email: email
+                    }).then(function (response) {
+                        if (!response.error) {
+                            _$form.find('#frm_verify_password_reset').setVisibility(0);
+                            _$form.find('#frm_check_mail_instruction').setVisibility(1);
+                        }
+                    });
+                });
+
+                if (!Validation.validEmailToken(token)) {
+                    _$form.find('#frm_password_reset').find('#token_error').setVisibility(1);
                 } else {
+                    _$form.find('#frm_password_change').setVisibility(0);
                     _$form.find('#frm_password_reset').setVisibility(1);
                 }
             }
@@ -34874,60 +34936,65 @@ var MetaTraderUI = function () {
         });
     };
 
-    var displayStep = function displayStep(step) {
+    var displayStep = function displayStep(step, error_code) {
         var new_account_type = newAccountGetType();
-
-        _$form.find('#btn_submit_new_account').setVisibility(0).attr('disabled', true);
-        _$form.find('#msg_form').remove();
-        _$form.find('#mv_new_account div[id^="view_"]').setVisibility(0);
-        _$form.find('#view_' + step).setVisibility(1);
-        _$form.find('#view_2').find('.error-msg, .days_to_crack').setVisibility(0);
-        _$form.find('.' + (/demo/.test(new_account_type) ? 'real' : 'demo') + '-only').setVisibility(0);
-
-        if (step === 2) {
-            _$form.find('input').not(':input[type=radio]').val('');
-
+        var trading_servers = State.getResponse('trading_servers');
+        var setNameInput = function setNameInput() {
             var get_settings = State.getResponse('get_settings');
-
             if (get_settings.first_name && get_settings.last_name) {
                 _$form.find('#txt_name').val(get_settings.first_name + ' ' + get_settings.last_name);
+            } else {
+                _$form.find('#txt_name').val(new_account_type);
             }
-
-            var trading_servers = State.getResponse('trading_servers');
-            var $view_2_button_container = _$form.find('#view_2-buttons');
-
+        };
+        var isLastTradingServer = function isLastTradingServer(servers) {
             // Check whether this is the last server the user is creating.
             var supported_servers = getAvailableServers(true);
+            return servers.length === 0 || /demo/.test(new_account_type) || supported_servers.length <= 1;
+        };
+        var renderPasswordPane = function renderPasswordPane() {
+            var status = State.getResponse('get_account_status').status;
+            var should_show_reset = status.indexOf('password_reset_required') !== -1;
+            _$form.find('#view_password-reset').setVisibility(should_show_reset);
+            _$form.find('#view_password-confirm').setVisibility(!should_show_reset);
 
-            if (trading_servers.length === 0 || /demo/.test(new_account_type) || supported_servers.length <= 1) {
-                var $submit_button = _$form.find('#btn_submit_new_account');
-
-                $('<p />', { id: 'msg_form', class: 'center-text gr-padding-10 error-msg no-margin invisible' }).prependTo($view_2_button_container);
-
-                // If we have no trading servers, skip the step after this
-                // by showing the "Create account" button right away.
-                _$form.find('#view_2 .btn-next').setVisibility(0);
-                $view_2_button_container.append($submit_button);
-                $submit_button.setVisibility(1);
-                $submit_button.removeAttr('disabled');
-            } else {
-                // If we do have trading servers, show the next button.
-                _$form.find('#view_2 .btn-next').setVisibility(1);
+            if (should_show_reset) {
+                _$form.find('#view_password-reset a.reset-password').on('click', resetPasswordHandler);
             }
+            _$form.find('input').not(':input[type=radio]').val('');
+            var $view_password_button_container = _$form.find('#view_password-buttons');
+            var $view_password_input_container = _$form.find('.confirm-password-form-fields');
 
-            $view_2_button_container.setVisibility(1);
-        } else if (step === 3) {
+            _$form.find('#view_password-buttons .reset-password').click(resetPasswordHandler);
+
+            setNameInput();
+
+            var $submit_button = _$form.find('#btn_submit_new_account');
+
+            $('<h3 />', {
+                id: 'msg_form',
+                class: 'gr-padding-10 error-msg no-margin invisible'
+            }).insertBefore($view_password_input_container);
+
+            // If we have no trading servers, skip the step after this
+            // by showing the "Create account" button right away.
+            _$form.find('#view_password .btn-next').setVisibility(0);
+            $view_password_button_container.append($submit_button);
+            $submit_button.setVisibility(1);
+            $submit_button.removeAttr('disabled');
+
+            $view_password_button_container.setVisibility(1);
+        };
+        var renderTradingServersPane = function renderTradingServersPane() {
             var sample_account = MetaTraderConfig.getSampleAccount(new_account_type);
-            _$form.find('#view_3 #mt5_account_type').text(sample_account.title);
+            _$form.find('#view_trading_server #mt5_account_type').text(sample_account.title);
 
-            var _$submit_button = _$form.find('#btn_submit_new_account');
-            var $view_3_button_container = _$form.find('#view_3-buttons');
+            var $submit_button = _$form.find('#btn_submit_new_account');
+            var $view_trading_server_button_container = _$form.find('#view_trading_server-buttons');
 
-            $('<p />', { id: 'msg_form', class: 'center-text gr-padding-10 error-msg no-margin invisible' }).prependTo($view_3_button_container);
-
-            $view_3_button_container.append(_$submit_button);
-            $view_3_button_container.setVisibility(1);
-            _$submit_button.setVisibility(1);
+            // If we do have trading servers, show the next button.
+            _$form.find('#view_trading_server .btn-next').setVisibility(1);
+            $view_trading_server_button_container.setVisibility(1);
 
             var $ddl_trade_server = _$form.find('#ddl_trade_server');
 
@@ -34939,7 +35006,7 @@ var MetaTraderUI = function () {
                 used: 0
             };
 
-            State.getResponse('trading_servers').forEach(function (trading_server) {
+            trading_servers.forEach(function (trading_server) {
                 // if server is not added to account type, and in accounts_info we are not storing it with server
                 if (!/\d$/.test(account_type) && !accounts_info[account_type]) {
                     account_type += '_' + trading_server.id;
@@ -34989,14 +35056,49 @@ var MetaTraderUI = function () {
                 $ddl_trade_server.find('input:not(:disabled):first').attr('checked', 'checked');
             }
 
-            _$form.find('#view_3 #server_unavailable_notice').setVisibility(num_servers.disabled > 0);
+            _$form.find('#view_trading_server #server_unavailable_notice').setVisibility(num_servers.disabled > 0);
 
             if (num_servers.supported === num_servers.disabled + num_servers.used) {
-                _$submit_button.addClass('button-disabled');
+                $submit_button.addClass('button-disabled');
             } else {
-                _$submit_button.removeClass('button-disabled');
-                _$submit_button.removeAttr('disabled');
+                $submit_button.removeClass('button-disabled');
+                $submit_button.removeAttr('disabled');
             }
+        };
+        var renderResetPasswordPane = function renderResetPasswordPane() {
+            _$form.find('#view_password').setVisibility(0);
+            _$form.find('#view_password_reset').setVisibility(1);
+            $('a.reset-password').on('click', resetPasswordHandler);
+        };
+        var enableView = function enableView() {
+            var target_view = void 0;
+            if (isLastTradingServer(trading_servers) && [2, 3].includes(step) || step === 3) {
+                target_view = 'password';
+            } else if (step === 2) {
+                target_view = 'trading_server';
+            } else if (step === 4) {
+                target_view = 'check-main';
+            } else if (step === 1) {
+                target_view = '1';
+            }
+            _$form.find('#view_password_reset').setVisibility(0);
+            _$form.find('#view_' + target_view).setVisibility(1);
+        };
+
+        _$form.find('#btn_submit_new_account').setVisibility(0).attr('disabled', true);
+        _$form.find('#msg_form').remove();
+        _$form.find('#mv_new_account div[id^="view_"]').setVisibility(0);
+        enableView();
+        _$form.find('#view_password').find('.error-msg, .days_to_crack').setVisibility(0);
+        _$form.find('.' + (/demo/.test(new_account_type) ? 'real' : 'demo') + '-only').setVisibility(0);
+        if (error_code) {
+            renderResetPasswordPane();
+        } else if (isLastTradingServer(trading_servers) && [2, 3].includes(step)) {
+            renderPasswordPane();
+        } else if (step === 2) {
+            renderTradingServersPane();
+        } else if (step === 3) {
+            renderPasswordPane();
         }
     };
 
@@ -35047,7 +35149,7 @@ var MetaTraderUI = function () {
             }
         });
 
-        _$form.find('#view_2 .btn-next').click(function () {
+        _$form.find('#view_trading_server .btn-next').click(function () {
             if (Validation.validate('#frm_new_account')) {
                 var new_account_type = newAccountGetType();
                 _$form.find('button[type="submit"]').attr('acc_type', new_account_type);
@@ -35077,11 +35179,11 @@ var MetaTraderUI = function () {
             }
         });
 
-        _$form.find('#view_2 .btn-back').click(function () {
-            displayStep(1);
-        });
-        _$form.find('#view_3 .btn-back').click(function () {
+        _$form.find('#view_password .btn-back').click(function () {
             displayStep(2);
+        });
+        _$form.find('#view_trading_server .btn-back').click(function () {
+            displayStep(1);
         });
 
         // Account type selection
@@ -35093,6 +35195,26 @@ var MetaTraderUI = function () {
         } else if (disabled_signup_types.real) {
             $('#rbtn_real').addClass('disabled').next('p').css('color', '#DEDEDE');
         }
+    };
+
+    var resetPasswordHandler = function resetPasswordHandler() {
+        var email = ClientBase.get('email');
+        BinarySocket.send({
+            type: 'reset_password',
+            verify_email: email
+        }).then(function (response) {
+            if (!response.error) {
+                displayStep(4);
+            }
+        });
+    };
+
+    var mt5ResetPasswordHandler = function mt5ResetPasswordHandler() {
+        var email = ClientBase.get('email');
+        return BinarySocket.send({
+            type: 'mt5_password_reset',
+            verify_email: email
+        });
     };
 
     var newAccountGetType = function newAccountGetType() {
@@ -35226,8 +35348,17 @@ var MetaTraderUI = function () {
         actions_info[action].$form.find('#msg_form').html('').setVisibility(0);
     };
 
-    var displayFormMessage = function displayFormMessage(message, action) {
-        actions_info[action].$form.find('#msg_form').html(message).setVisibility(1);
+    var displayFormMessage = function displayFormMessage(message, action, code) {
+        if (code === 'PasswordReset') {
+            displayStep(3, code);
+            actions_info[action].$form.find('#password_reset_error').html(message).setVisibility(1);
+        } else if (code === 'PasswordError') {
+            actions_info[action].$form.find('#msg_form').html(message).setVisibility(1);
+            $('#txt_main_pass').val('');
+            actions_info[action].$form.find('#view_password').find('.days_to_crack').setVisibility(0);
+        } else {
+            actions_info[action].$form.find('#msg_form').html(message).setVisibility(1);
+        }
     };
 
     var displayMainMessage = function displayMainMessage(message) {
@@ -35281,7 +35412,7 @@ var MetaTraderUI = function () {
                 if (!response.error) {
                     displayMainMessage(localize('The [_1] password of account number [_2] has been changed.', [response.echo_req.password_type, MetaTraderConfig.getDisplayLogin(response.echo_req.login)]));
                 } else if (has_invalid_token) {
-                    _$form.find('#frm_verify_password_reset #token_error').setVisibility(1);
+                    _$form.find('#frm_password_change #token_error').setVisibility(1);
                 }
             }
         }
@@ -36312,6 +36443,7 @@ module.exports = RealityCheckUI;
 "use strict";
 
 
+var Client = __webpack_require__(/*! ../../base/client */ "./src/javascript/app/base/client.js");
 var FormManager = __webpack_require__(/*! ../../common/form_manager */ "./src/javascript/app/common/form_manager.js");
 var Login = __webpack_require__(/*! ../../../_common/base/login */ "./src/javascript/_common/base/login.js");
 var localize = __webpack_require__(/*! ../../../_common/localize */ "./src/javascript/_common/localize.js").localize;
@@ -36338,6 +36470,9 @@ var ResetPassword = function () {
             $form_error.setVisibility(1);
         } else {
             $('#msg_reset_password').text(localize('Your password has been successfully reset. Please log into your account using your new password.')).setVisibility(1);
+            if (Client.isLoggedIn()) {
+                Client.doLogout({ logout: 1 });
+            }
             setTimeout(function () {
                 Login.redirectToLogin();
             }, 5000);
