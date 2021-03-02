@@ -495,11 +495,16 @@ const Authenticate = (() => {
                 }
 
                 const isLastUpload = () => total_to_upload === idx_to_upload + 1;
+                const data = processed_files[idx_to_upload];
+                const file_data = {
+                    ...data,
+                    documentType: data.documentType === 'nimc' ? 'other' : data.documentType,
+                };
                 // sequentially send files
                 const uploadFile = () => {
-                    const $status = $submit_table_uns.find(`.${processed_files[idx_to_upload].passthrough.class} .status`);
+                    const $status = $submit_table_uns.find(`.${file_data.passthrough.class} .status`);
                     $status.text(`${localize('Submitting')}...`);
-                    uploader.upload(processed_files[idx_to_upload]).then((api_response) => {
+                    uploader.upload(file_data).then((api_response) => {
                         onResponseUns(api_response, isLastUpload());
                         if (!api_response.error && !api_response.warning) {
                             $status.text(localize('Submitted')).append($('<span/>', { class: 'checked' }));
@@ -727,13 +732,14 @@ const Authenticate = (() => {
 
     // Validate user input
     const validate = (file) => {
-        const is_nigeria = country_code === 'NGA';
-        const required_docs = ['passport', 'national_identity_card', 'driving_licence'];
+        const id_required_docs = ['passport', 'national_identity_card', 'driving_licence', 'nimc'];
+        const expiry_date_required_docs = ['passport', 'national_identity_card', 'driving_licence'];
         const doc_name = {
             passport              : localize('Passport'),
-            national_identity_card: is_nigeria ? localize('NIMC slip') : localize('Identity card'),
+            national_identity_card: localize('Identity card'),
             driving_licence       : localize('Driving licence'),
-            other                 : is_nigeria ? localize('Age declaration document') : '',
+            nimc                  : localize('NIMC slip'),
+            other                 : localize('Document'),
         };
 
         const accepted_formats_regex = /selfie/.test(file.passthrough.class)
@@ -746,7 +752,7 @@ const Authenticate = (() => {
         if (file.buffer && file.buffer.byteLength >= 8 * 1024 * 1024) {
             return localize('File ([_1]) size exceeds the permitted limit. Maximum allowed file size: [_2]', [file.filename, '8MB']);
         }
-        if (!file.documentId && required_docs.indexOf(file.documentType.toLowerCase()) !== -1)  {
+        if (!file.documentId && id_required_docs.indexOf(file.documentType.toLowerCase()) !== -1)  {
             onErrorResolved('id_number', file.passthrough.class);
             return localize('ID number is required for [_1].', doc_name[file.documentType]);
         }
@@ -755,7 +761,7 @@ const Authenticate = (() => {
             return localize('Only letters, numbers, space, underscore, and hyphen are allowed for ID number ([_1]).', doc_name[file.documentType]);
         }
         if (!file.expirationDate
-            && required_docs.indexOf(file.documentType.toLowerCase()) !== -1
+            && expiry_date_required_docs.indexOf(file.documentType.toLowerCase()) !== -1
             && !(isIdentificationNoExpiry(Client.get('residence')) && file.documentType === 'national_identity_card')
         ) {
             onErrorResolved('exp_date', file.passthrough.class);

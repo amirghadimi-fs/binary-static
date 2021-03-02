@@ -97,11 +97,11 @@ const FileSelector = ({
                                                     </div>
                                                     <div className='gr-row form-row center-text-m'>
                                                         <div className='gr-12'>
-                                                            <input id={`nimc_${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={document.value} data-name={it.L('the NIMC slip')} data-page-type='front' />
+                                                            <input id={`nimc_${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={'nimc'} data-name={it.L('The NIMC slip')} data-page-type='front' />
                                                             <label htmlFor={`nimc_${j}`} className='button'>{it.L('Add the NIMC slip')} <span className='add' /></label>
                                                         </div>
                                                         <div className='gr-12'>
-                                                            <input id={`dob_${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={'other'} data-name={it.L('age declaration document')} data-page-type='front' />
+                                                            <input id={`dob_${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={'other'} data-name={it.L('Age declaration document')} data-page-type='front' />
                                                             <label htmlFor={`dob_${j}`} className='button'>{it.L('Add age declaration document')} <span className='add' /></label>
                                                         </div>
                                                     </div>
