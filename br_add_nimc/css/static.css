@@ -1713,6 +1713,28 @@ body #not_authenticated_financial ul.checked > li {
   display: inline-block;
   margin-left: 5px; }
 
+.authentication ul.rejected > li {
+  background: url("../images/pages/authenticate/error.svg") no-repeat left 0.3em;
+  width: -webkit-fit-content;
+  width: -moz-fit-content;
+  width: fit-content;
+  text-align: left;
+  padding-left: 1.4em;
+  margin-top: 1em;
+  min-height: auto; }
+
+.authentication #last_rejection_poi span {
+  cursor: pointer;
+  color: #e98024; }
+  .authentication #last_rejection_poi span:hover {
+    text-decoration: underline; }
+
+.authentication #last_rejection_button {
+  margin-top: 1.4em; }
+
+.authentication #last_rejection_list {
+  margin-bottom: 0.9em; }
+
 .authentication #resolve_error {
   color: #c03; }
 
@@ -2262,13 +2284,92 @@ body #not_authenticated_financial ul.checked > li {
 #not_authenticated_uns .ui-accordion .ui-accordion-icons {
   padding-right: 2.2em; }
 
-.universal-password-alert {
-  padding: 24px 22px;
-  margin-bottom: 20px;
-  line-height: 1.2; }
+#nimc_notice_dialog > div#dialog_content {
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+  max-width: 37.5rem;
+  padding: 2rem; }
 
-.confirm-password-form-fields {
-  margin-bottom: 22px; }
+#nimc_notice_dialog .gr-gutter, #nimc_notice_dialog #dialog_message {
+  padding: 0; }
+
+#nimc_notice_dialog #dialog_title {
+  font-weight: bold;
+  margin-bottom: 1rem; }
+
+#nimc_notice_dialog strong, #nimc_notice_dialog p {
+  display: block;
+  margin: 0 0 0.5rem; }
+
+#nimc_notice_dialog .gr-row {
+  padding: 0;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  margin: 0; }
+
+#nimc_notice_dialog .nimc_notice_images {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  margin: 1.5rem 0; }
+  @media screen and (max-width: 600px) {
+    #nimc_notice_dialog .nimc_notice_images {
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+          -ms-flex-direction: column;
+              flex-direction: column;
+      -webkit-box-align: center;
+          -ms-flex-align: center;
+              align-items: center; } }
+  #nimc_notice_dialog .nimc_notice_images img {
+    width: 15.625rem;
+    height: 9.75rem; }
+    @media screen and (max-width: 600px) {
+      #nimc_notice_dialog .nimc_notice_images img {
+        width: 12.5rem;
+        height: 7.625rem; } }
+  #nimc_notice_dialog .nimc_notice_images img:first-of-type {
+    margin-right: 1rem; }
+    @media screen and (max-width: 600px) {
+      #nimc_notice_dialog .nimc_notice_images img:first-of-type {
+        margin: 0 0 1rem; } }
+
+#nimc_notice_dialog #frm_confirm {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+  margin-top: 1.5rem; }
+  @media screen and (max-width: 600px) {
+    #nimc_notice_dialog #frm_confirm {
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+          -ms-flex-direction: column;
+              flex-direction: column;
+      margin: 0 0 1rem; } }
+  #nimc_notice_dialog #frm_confirm a.button {
+    -webkit-box-flex: 1;
+        -ms-flex: 1;
+            flex: 1;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    margin: 0; }
+    #nimc_notice_dialog #frm_confirm a.button:first-of-type {
+      margin-right: 1rem; }
+      @media screen and (max-width: 600px) {
+        #nimc_notice_dialog #frm_confirm a.button:first-of-type {
+          margin: 0 0 1rem; } }
+    #nimc_notice_dialog #frm_confirm a.button span {
+      -webkit-box-flex: 1;
+          -ms-flex: 1;
+              flex: 1; }
 
 .timeline {
   margin: 0 auto;
