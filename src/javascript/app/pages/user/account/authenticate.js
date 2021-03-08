@@ -5,6 +5,7 @@ const onfido_phrases          = require('./onfido_phrases');
 const Client                  = require('../../../base/client');
 const Header                  = require('../../../base/header');
 const BinarySocket            = require('../../../base/socket');
+const Dialog                  = require('../../../common/attach_dom/dialog');
 const isAuthenticationAllowed = require('../../../../_common/base/client_base').isAuthenticationAllowed;
 const CompressImage           = require('../../../../_common/image_utility').compressImg;
 const ConvertToBase64         = require('../../../../_common/image_utility').convertToBase64;
@@ -32,6 +33,8 @@ const Authenticate = (() => {
     let onfido,
         onfido_token,
         country_code,
+        has_accepted_nimc_notice,
+        nimc_notice_images,
         $button,
         $submit_status,
         $submit_table,
@@ -118,6 +121,7 @@ const Authenticate = (() => {
         }
 
         if (is_nigeria) {
+            nimc_notice_images = `<div class="nimc_notice_images"><img src="${Url.urlForStatic('images/pages/authenticate/nigerian-id-card-front.svg')}"/><img src="${Url.urlForStatic('images/pages/authenticate/nigerian-id-card-back.svg')}"/></div>`;
             const $nigeria_file_selector = document.querySelector('[data-type="nigeria"]');
             document.querySelector('[data-type="poi"]').setVisibility(0);
             $show_onfido_btns = $nigeria_file_selector.querySelectorAll('h3[data-show-onfido]');
@@ -178,9 +182,9 @@ const Authenticate = (() => {
             resetLabelUns(event);
             return;
         }
-        const $target      = $(event.target);
-        const file_name    = event.target.files[0].name || '';
-        const display_name = file_name.length > 20 ? `${file_name.slice(0, 10)}..${file_name.slice(-8)}` : file_name;
+        const $target       = $(event.target);
+        const file_name     = event.target.files[0].name || '';
+        const display_name  = file_name.length > 20 ? `${file_name.slice(0, 10)}..${file_name.slice(-8)}` : file_name;
         $target.attr('data-status', '')
             .parent().find('label')
             .off('click')
@@ -271,8 +275,8 @@ const Authenticate = (() => {
     const enableDisableSubmitUns = () => {
         const $not_authenticated = $('#not_authenticated_uns');
         const $files             = $not_authenticated.find('input[type="file"]');
-        const is_nigeria = country_code === 'NGA';
-        $button_uns = $not_authenticated.find('#btn_submit_uns');
+        const is_nigeria         = country_code === 'NGA';
+        $button_uns              = $not_authenticated.find('#btn_submit_uns');
 
         const file_selected  = $('label[class~="selected"]').length;
         const file_uploaded  = $('label span[class~="checked"]').length;
@@ -371,13 +375,34 @@ const Authenticate = (() => {
         processFiles(files);
     };
 
+    const showNimcDialog = () =>  new Promise(resolve => {
+        Dialog.confirm({
+            id               : 'nimc_notice_dialog',
+            localized_title  : localize('IMPORTANT!'),
+            localized_message: localize('[_1]Before uploading your NIMC,[_2] [_3]- Ensure that only the first six and last four digits of the PAN are visible on the front.[_4][_3]- Cover the 3-digit CVV code on the back.[_4][_5][_3]Alternatively, you may upload your passport or driving licence.[_4]', ['<strong>', '</strong>','<p>','</p>',nimc_notice_images]),
+            ok_text          : localize('Got it'),
+            cancel_text      : localize('Upload another document'),
+        }).then((response) => resolve(response));
+    });
+
     /**
      * On submit button click
      */
-    const submitFilesUns = ($files) => {
+    const submitFilesUns = async ($files) => {
+        const is_nigeria = country_code === 'NGA';
+
         if ($button_uns.length && $button_uns.find('.barspinner').length) { // it's still in submit process
             return;
         }
+
+        if (is_nigeria && !has_accepted_nimc_notice){
+            await showNimcDialog().then(result => has_accepted_nimc_notice = result);
+
+            if (!has_accepted_nimc_notice){
+                return;
+            }
+        }
+        
         // Disable submit button
         showButtonLoadingUns();
         const files = [];

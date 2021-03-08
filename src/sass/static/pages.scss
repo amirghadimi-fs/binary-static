@@ -1738,3 +1738,81 @@ body #not_authenticated_financial ul.checked > li {
 #not_authenticated_uns .ui-accordion .ui-accordion-icons {
     padding-right: 2.2em;
 }
+
+#nimc_notice_dialog {
+    > div#dialog_content {
+        box-sizing: border-box;
+        max-width: 37.5rem;
+        padding: 2rem;
+    }
+    .gr-gutter, #dialog_message {
+        padding: 0;
+    }
+    #dialog_title {
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+    strong, p {
+        display: block;
+        margin: 0 0 0.5rem;
+    }
+    .gr-row {
+        padding: 0;
+        display: flex;
+        margin: 0;
+    }
+    .nimc_notice_images {
+        display: flex;
+        justify-content: center;
+        margin: 1.5rem 0;
+
+        @media screen and (max-width: 600px) {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        img {
+            width: 15.625rem;
+            height: 9.75rem;
+
+            @media screen and (max-width: 600px) {
+                width: 12.5rem;
+                height: 7.625rem;
+            }
+        }
+        img:first-of-type {
+            margin-right: 1rem;
+
+            @media screen and (max-width: 600px) {
+                margin: 0 0 1rem;
+            }
+        }
+    }
+    #frm_confirm {
+        display: flex;
+        flex: 1;
+        margin-top: 1.5rem;
+
+        @media screen and (max-width: 600px) {
+            flex-direction: column;
+            margin: 0 0 1rem;
+        }
+
+        a.button {
+            flex: 1;
+            display: flex;
+            margin: 0;
+
+            &:first-of-type {
+                margin-right: 1rem;
+
+                @media screen and (max-width: 600px) {
+                    margin: 0 0 1rem;
+                }
+            }
+            span {
+                flex: 1;
+            }
+        }
+    }
+}
