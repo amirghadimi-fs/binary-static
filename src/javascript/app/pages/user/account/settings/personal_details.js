@@ -173,6 +173,7 @@ const PersonalDetails = (() => {
             fnc_response_handler: setDetailsResponse,
             fnc_additional_check: additionalCheck,
             enable_button       : true,
+            // static_values       : { features_flag: { wallet: 1 } }, // Todo: add a features_flag if is needed
         });
         showHideMissingDetails();
     };

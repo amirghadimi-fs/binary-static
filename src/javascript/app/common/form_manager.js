@@ -136,7 +136,11 @@ const FormManager = (() => {
             can_submit  = form.can_submit;
             if (!can_submit) return;
             if (Validation.validate(options.form_selector)) {
-                const req = $.extend({}, options.obj_request, getFormData(options.form_selector));
+                const req = $.extend({},
+                    options.obj_request,
+                    getFormData(options.form_selector),
+                    options.static_values
+                );
                 if (typeof options.fnc_additional_check === 'function') {
                     Promise.resolve(options.fnc_additional_check(req)).then((result) => {
                         if (result) submit(req);
