@@ -169,11 +169,10 @@ const PersonalDetails = (() => {
         FormManager.init(form_id, validations);
         FormManager.handleSubmit({
             form_selector       : form_id,
-            obj_request         : { set_settings: 1 },
+            obj_request         : { set_settings: 1 }, // Todo: add a features_flag if is needed -> { set_settings: 1, features_flag: { wallet: 1 } }
             fnc_response_handler: setDetailsResponse,
             fnc_additional_check: additionalCheck,
             enable_button       : true,
-            // static_values       : { features_flag: { wallet: 1 } }, // Todo: add a features_flag if is needed
         });
         showHideMissingDetails();
     };
