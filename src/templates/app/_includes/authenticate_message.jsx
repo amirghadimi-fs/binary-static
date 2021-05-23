@@ -89,7 +89,7 @@ const FileSelector = ({
                                                     </div>
                                                     <div className='gr-row form-row center-text-m' id={`expiry_datepicker_${document.value}`}>
                                                         <div className='gr-4 gr-12-m'>
-                                                            <label htmlFor={`exp_date_${j}`}>{it.L('Expiry date')}<span className='required_field_asterisk'>*</span>:</label>
+                                                            <label htmlFor={`exp_date_${j}`}>{it.L('Expiry date')}:</label>
                                                         </div>
                                                         <div className='gr-8 gr-12-m'>
                                                             <input className='date-picker' id={`exp_date_${j}`} type='text' maxLength='200' readOnly='readonly' />
@@ -97,7 +97,7 @@ const FileSelector = ({
                                                     </div>
                                                     <div className='gr-row form-row center-text-m'>
                                                         <div className='gr-12'>
-                                                            <input id={`nimc_${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={'nimc'} data-name={it.L('The NIMC slip')} data-page-type='front' />
+                                                            <input id={`nimc_${j}`} className='file-picker' type='file' accept='.jpg, .jpeg, .gif, .png, .pdf' data-type={document.value} data-is-lifetime-valid data-name={it.L('The NIMC slip')} data-page-type='front' />
                                                             <label htmlFor={`nimc_${j}`} className='button'>{it.L('Add the NIMC slip')} <span className='add' /></label>
                                                         </div>
                                                         <div className='gr-12'>
@@ -200,7 +200,7 @@ export const UnsupportedMessage = () => (
                 { name: it.L('Passport'), value: 'Passport' },
                 { name: it.L('Identity card'), value: 'National Identity Card' },
                 { name: it.L('Driving licence'), value: 'Driving Licence' },
-                { name: it.L('NIMC slip and an age declaration document'), value: 'national_identity_card', is_nimc: true },
+                { name: it.L('NIMC slip and an age declaration document'), value: 'National Identity Card', is_nimc: true },
             ]}
         />
 

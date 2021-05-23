@@ -409,17 +409,19 @@ const Authenticate = (() => {
         $submit_table_uns.children().remove();
         $files.each((i, e) => {
             if (e.files && e.files.length) {
-                const $e        = $(e);
-                const id        = $e.attr('id');
-                const type      = `${($e.attr('data-type') || '').replace(/\s/g, '_').toLowerCase()}`;
-                const name      = $e.attr('data-name');
-                const page_type = $e.attr('data-page-type');
-                const $inputs   = $e.closest('.fields').find('input[type="text"]');
-                const file_obj  = {
+                const $e             = $(e);
+                const id             = $e.attr('id');
+                const type           = `${($e.attr('data-type') || '').replace(/\s/g, '_').toLowerCase()}`;
+                const lifetime_valid = Boolean($e.attr('data-is-lifetime-valid'));
+                const name           = $e.attr('data-name');
+                const page_type      = $e.attr('data-page-type');
+                const $inputs        = $e.closest('.fields').find('input[type="text"]');
+                const file_obj       = {
                     file     : e.files[0],
                     chunkSize: 16384, // any higher than this sends garbage data to websocket currently.
                     class    : id,
                     type,
+                    lifetime_valid,
                     name,
                     page_type,
                 };
@@ -532,16 +534,13 @@ const Authenticate = (() => {
                 }
 
                 const isLastUpload = () => total_to_upload === idx_to_upload + 1;
-                const data = processed_files[idx_to_upload];
-                const file_data = {
-                    ...data,
-                    documentType: data.documentType === 'nimc' ? 'other' : data.documentType,
-                };
+
                 // sequentially send files
                 const uploadFile = () => {
-                    const $status = $submit_table_uns.find(`.${file_data.passthrough.class} .status`);
+                    const data = processed_files[idx_to_upload];
+                    const $status = $submit_table_uns.find(`.${data.passthrough.class} .status`);
                     $status.text(`${localize('Submitting')}...`);
-                    uploader.upload(file_data).then((api_response) => {
+                    uploader.upload(data).then((api_response) => {
                         onResponseUns(api_response, isLastUpload());
                         if (!api_response.error && !api_response.warning) {
                             $status.text(localize('Submitted')).append($('<span/>', { class: 'checked' }));
@@ -699,6 +698,7 @@ const Authenticate = (() => {
                         documentFormat: format,
                         documentId    : f.id_number || undefined,
                         expirationDate: f.exp_date || undefined,
+                        lifetimeValid : +(f.lifetime_valid),
                         chunkSize     : f.chunkSize,
                         passthrough   : {
                             filename: f.file.name,
@@ -770,7 +770,7 @@ const Authenticate = (() => {
 
     // Validate user input
     const validate = (file) => {
-        const id_required_docs = ['passport', 'national_identity_card', 'driving_licence', 'nimc'];
+        const id_required_docs = ['passport', 'national_identity_card', 'driving_licence'];
         const expiry_date_required_docs = ['passport', 'national_identity_card', 'driving_licence'];
         const doc_name = {
             passport              : localize('Passport'),
@@ -792,13 +792,14 @@ const Authenticate = (() => {
         }
         if (!file.documentId && id_required_docs.indexOf(file.documentType.toLowerCase()) !== -1)  {
             onErrorResolved('id_number', file.passthrough.class);
-            return localize('ID number is required for [_1].', doc_name[file.documentType]);
+            return localize('ID number is required for [_1].', doc_name[file.lifetime_valid ? 'nimc' : file.documentType]);
         }
         if (file.documentId && !/^[\w\s-]{0,30}$/.test(file.documentId)) {
             onErrorResolved('id_number', file.passthrough.class);
             return localize('Only letters, numbers, space, underscore, and hyphen are allowed for ID number ([_1]).', doc_name[file.documentType]);
         }
         if (!file.expirationDate
+            && !file.lifetime_valid
             && expiry_date_required_docs.indexOf(file.documentType.toLowerCase()) !== -1
             && !(isIdentificationNoExpiry(Client.get('residence')) && file.documentType === 'national_identity_card')
         ) {
