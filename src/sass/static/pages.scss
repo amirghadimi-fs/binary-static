@@ -1048,6 +1048,9 @@ body #not_authenticated_financial ul.checked > li {
         > input[type=file] {
             display: none;
         }
+        label:not(.button) {
+            font-size: $FONT_SIZE_S;
+        }
     }
     .center-text .button .barspinner {
         margin: 0 auto;

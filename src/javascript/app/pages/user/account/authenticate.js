@@ -181,9 +181,9 @@ const Authenticate = (() => {
             resetLabelUns(event);
             return;
         }
-        const $target       = $(event.target);
-        const file_name     = event.target.files[0].name || '';
-        const display_name  = file_name.length > 20 ? `${file_name.slice(0, 10)}..${file_name.slice(-8)}` : file_name;
+        const $target      = $(event.target);
+        const file_name    = event.target.files[0].name || '';
+        const display_name = file_name.length > 20 ? `${file_name.slice(0, 10)}..${file_name.slice(-8)}` : file_name;
         $target.attr('data-status', '')
             .parent().find('label')
             .off('click')
