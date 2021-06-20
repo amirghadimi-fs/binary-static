@@ -13232,11 +13232,16 @@ var ActiveSymbols = function () {
         return trade_markets_list;
     };
 
-    // The unavailable underlyings are only offered on deriv.com.
+    // The unavailable underlyings and markets are only offered on deriv.com.
     var unavailable_underlyings = ['BOOM500', 'BOOM1000', 'CRASH500', 'CRASH1000', 'stpRNG'];
+    var unavailable_markets = ['cryptocurrency'];
 
     var getAvailableUnderlyings = function getAvailableUnderlyings(markets_list) {
         var markets_list_clone = clone(markets_list);
+
+        unavailable_markets.forEach(function (item) {
+            return markets_list_clone[item] && delete markets_list_clone[item];
+        });
 
         Object.keys(markets_list_clone).forEach(function (market_key) {
             Object.keys(markets_list_clone[market_key].submarkets).forEach(function (submarket_key) {
