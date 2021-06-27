@@ -374,14 +374,12 @@ const Authenticate = (() => {
         processFiles(files);
     };
 
-    const showNimcDialog = () =>  new Promise(resolve => {
-        Dialog.confirm({
-            id               : 'nimc_notice_dialog',
-            localized_title  : localize('IMPORTANT!'),
-            localized_message: localize('[_1]Before uploading your NIMC,[_2] [_3]- Ensure that only the first six and last four digits of the PAN are visible on the front.[_4][_3]- Cover the 3-digit CVV code on the back.[_4][_5][_3]Alternatively, you may upload your passport or driving licence.[_4]', ['<strong>', '</strong>','<p>','</p>',nimc_notice_images]),
-            ok_text          : localize('Got it'),
-            cancel_text      : localize('Upload another document'),
-        }).then((response) => resolve(response));
+    const showNIMCDialog = () =>  Dialog.confirm({
+        id               : 'nimc_notice_dialog',
+        localized_title  : localize('IMPORTANT!'),
+        localized_message: localize('[_1]Before uploading your NIMC,[_2] [_3]- Ensure that only the first six and last four digits of the PAN are visible on the front.[_4][_3]- Cover the 3-digit CVV code on the back.[_4][_5][_3]Alternatively, you may upload your passport or driving licence.[_4]', ['<strong>', '</strong>','<p>','</p>',nimc_notice_images]),
+        ok_text          : localize('Got it'),
+        cancel_text      : localize('Upload another document'),
     });
 
     /**
@@ -395,7 +393,7 @@ const Authenticate = (() => {
         }
 
         if (is_nigeria && !has_accepted_nimc_notice){
-            await showNimcDialog().then(result => has_accepted_nimc_notice = result);
+            await showNIMCDialog().then(result => has_accepted_nimc_notice = result);
 
             if (!has_accepted_nimc_notice){
                 return;
