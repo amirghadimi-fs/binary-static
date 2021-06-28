@@ -393,7 +393,7 @@ const Authenticate = (() => {
         }
 
         if (is_nigeria && !has_accepted_nimc_notice){
-            await showNIMCDialog().then(result => has_accepted_nimc_notice = result);
+            has_accepted_nimc_notice = await showNIMCDialog();
 
             if (!has_accepted_nimc_notice){
                 return;
